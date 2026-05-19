@@ -1163,8 +1163,11 @@ async function fetchLiveRate(){
     if (!data.success || !data.primary) throw new Error('API returned no primary data');
 
     const p = data.primary;
-    const newRate = (typeof p.tt_send === 'number' && p.tt_send > 0) ? p.tt_send : p.base_rate;
-    const newBase = (typeof p.base_rate === 'number' && p.base_rate > 0) ? p.base_rate : newRate;
+    // 🔥 CURRENT_RATE = 매매기준율 (서울외국환중개 / ERP 환율과 동일)
+    // 이전 버그: tt_send(송금보내실때) 사용 → 차상무님은 IBK에서 매수하시므로 의미 없음
+    // 매매기준율 = 워크북 "원가환율" 컬럼과 동일 의미 → 정확한 갭 계산
+    const newBase = (typeof p.base_rate === 'number' && p.base_rate > 0) ? p.base_rate : null;
+    const newRate = newBase || p.tt_send;  // base_rate 없으면 fallback
 
     // ⚠️ PREVIOUS_RATE를 매 분마다 갱신하지 않음 — fetchHistory30D가 설정한
     //    전영업일 종가가 하루 종일 baseline 역할. delta = "vs 전영업일".
