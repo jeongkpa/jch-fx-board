@@ -183,6 +183,19 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 .tl-result.loss{background:var(--up-50);color:var(--up);}
 .tl-result.par{background:var(--bg-subtle);color:var(--text-tertiary);}
 
+/* HERMES REPORT */
+.hermes-report-card{background:linear-gradient(180deg,#fff 0%,#F8FBFF 100%);border:1px solid var(--brand-100);}
+.hermes-report-grid{display:grid;grid-template-columns:260px 1fr;gap:var(--s-6);align-items:start;}
+.hermes-report-meta{background:var(--bg-card);border:1px solid var(--border-soft);border-radius:var(--r-xl);padding:var(--s-5);}
+.hermes-report-status{display:inline-flex;align-items:center;gap:7px;background:var(--good-50);color:var(--good);padding:6px 12px;border-radius:var(--r-pill);font-size:14px;font-weight:700;margin-bottom:var(--s-4);}
+.hermes-report-status.waiting{background:var(--warn-50);color:var(--warn);}
+.hermes-report-kicker{font-size:13px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:.2px;margin-bottom:4px;}
+.hermes-report-value{font-size:17px;color:var(--text-primary);font-weight:700;margin-bottom:var(--s-3);font-variant-numeric:tabular-nums;}
+.hermes-report-body{background:var(--bg-card);border:1px solid var(--border-soft);border-radius:var(--r-xl);padding:var(--s-6);min-height:180px;}
+.hermes-report-title{font-size:21px;font-weight:800;letter-spacing:-.4px;color:var(--text-primary);margin-bottom:var(--s-3);}
+.hermes-report-text{white-space:pre-wrap;font-family:var(--font);font-size:17px;line-height:1.7;color:var(--text-secondary);word-break:keep-all;}
+.hermes-report-empty{color:var(--text-tertiary);font-size:17px;line-height:1.7;}
+
 /* FOOTER */
 .footer{margin-top:var(--s-16);padding:var(--s-8) 0;border-top:1px solid var(--border-soft);font-size:13px;color:var(--text-quaternary);}
 .footer-grid{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s-3);}
@@ -196,6 +209,7 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
   .hero-grid{grid-template-columns:1fr;gap:var(--s-8);}
   .metrics-row{grid-template-columns:repeat(2,1fr);}
   .bottom-row{grid-template-columns:1fr;}
+  .hermes-report-grid{grid-template-columns:1fr;}
 }
 @media (max-width:768px){
   html{font-size:16px;}
@@ -376,6 +390,33 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
       </div>
     </div>
 
+  </section>
+
+  <section class="section hermes-report-card">
+    <div class="section-head">
+      <h2 class="section-title">
+        Hermes 최근 보고
+        <span class="badge">Discord 동일 본문</span>
+      </h2>
+      <button class="chip" id="hermes-report-refresh" type="button">새로고침</button>
+    </div>
+    <div class="hermes-report-grid">
+      <aside class="hermes-report-meta">
+        <div class="hermes-report-status waiting" id="hermes-report-status">수신 대기</div>
+        <div class="hermes-report-kicker">보고 시각</div>
+        <div class="hermes-report-value" id="hermes-report-time">—</div>
+        <div class="hermes-report-kicker">환율</div>
+        <div class="hermes-report-value" id="hermes-report-rate">—</div>
+        <div class="hermes-report-kicker">출처</div>
+        <div class="hermes-report-value" id="hermes-report-source">—</div>
+      </aside>
+      <article class="hermes-report-body">
+        <div class="hermes-report-title" id="hermes-report-title">아직 수신된 Hermes 보고서가 없습니다</div>
+        <div class="hermes-report-empty" id="hermes-report-body">
+          오전/오후 Hermes 보고가 전송되면 이 영역에 Discord와 동일한 본문이 표시됩니다.
+        </div>
+      </article>
+    </div>
   </section>
 
   <section class="section">
@@ -1031,6 +1072,68 @@ function animateLiveTime(){
   setInterval(tick, 30000);
 }
 
+function fmtReportTime(iso){
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  const mm = String(d.getMonth() + 1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return mm + '/' + dd + ' ' + hh + ':' + mi;
+}
+
+function renderHermesReport(report){
+  const status = document.getElementById('hermes-report-status');
+  const time = document.getElementById('hermes-report-time');
+  const rate = document.getElementById('hermes-report-rate');
+  const source = document.getElementById('hermes-report-source');
+  const title = document.getElementById('hermes-report-title');
+  const body = document.getElementById('hermes-report-body');
+  if (!status || !time || !rate || !source || !title || !body) return;
+
+  if (!report) {
+    status.textContent = '수신 대기';
+    status.classList.add('waiting');
+    time.textContent = '—';
+    rate.textContent = '—';
+    source.textContent = '—';
+    title.textContent = '아직 수신된 Hermes 보고서가 없습니다';
+    body.className = 'hermes-report-empty';
+    body.textContent = '오전/오후 Hermes 보고가 전송되면 이 영역에 Discord와 동일한 본문이 표시됩니다.';
+    return;
+  }
+
+  status.textContent = '수신 완료';
+  status.classList.remove('waiting');
+  time.textContent = fmtReportTime(report.created_at || report.received_at);
+  rate.textContent = typeof report.rate === 'number' ? report.rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + '원' : '—';
+  source.textContent = report.source || 'Hermes';
+  title.textContent = report.title || 'Hermes 보고';
+  body.className = 'hermes-report-text';
+  body.textContent = report.markdown || report.summary || '본문 없음';
+}
+
+async function fetchHermesReport(){
+  try {
+    const res = await fetch('/api/hermes-report?limit=1', { cache:'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'API returned failure');
+    renderHermesReport(data.latest || null);
+    return true;
+  } catch (err) {
+    console.warn('[hermes-report] fetch failed:', err.message || err);
+    return false;
+  }
+}
+
+function setupHermesReportRefresh(){
+  const btn = document.getElementById('hermes-report-refresh');
+  if (!btn) return;
+  btn.addEventListener('click', fetchHermesReport);
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   renderVendors('gap');
   renderTimeline();
@@ -1038,8 +1141,10 @@ document.addEventListener('DOMContentLoaded', function(){
   renderM1Chart();
   renderPositionChart();
   setupSortChips();
+  setupHermesReportRefresh();
   animateCoverageBar();
   animateLiveTime();
+  fetchHermesReport();
 
   // 30일 yfinance 일별 히스토리 — 페이지 로드 시 1회 (그 후 정적)
   // 라이브 환율 폴링과 병렬 실행: history 먼저 시작, rate가 도착하면 1개월 delta 재계산
