@@ -121,28 +121,167 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 .metric-bar-track{height:8px;background:var(--bg-subtle);border-radius:var(--r-pill);overflow:hidden;margin-top:var(--s-3);}
 .metric-bar-fill{height:100%;background:var(--brand);border-radius:var(--r-pill);transition:width 1.2s var(--ease-out);}
 
-/* HERMES OUTLOOK */
-.outlook-card{background:var(--bg-card);border-radius:var(--r-2xl);padding:var(--s-7);margin-bottom:var(--s-6);box-shadow:var(--shadow-sm);border:1px solid var(--border-soft);animation:fadeInUp .7s .22s var(--ease) both;}
-.outlook-card.waiting{background:linear-gradient(180deg,#fff 0%,#F8F9FA 100%);}
-.outlook-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-4);margin-bottom:var(--s-5);flex-wrap:wrap;}
-.outlook-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text-primary);}
-.outlook-sub{font-size:15px;color:var(--text-tertiary);font-weight:600;margin-top:4px;}
-.outlook-action{display:inline-flex;align-items:center;border-radius:var(--r-pill);padding:8px 16px;background:var(--brand-50);color:var(--brand-strong);font-size:15px;font-weight:800;}
-.outlook-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-4);margin-bottom:var(--s-5);}
-.outlook-item{border-radius:var(--r-xl);padding:var(--s-5);background:var(--bg-subtle);border:1px solid var(--border-soft);}
-.outlook-item.risk{background:#FFF5F5;border-color:#FECACA;}
-.outlook-item.down{background:var(--down-50);border-color:var(--down-100);}
-.outlook-item.neutral{background:#F8FAFC;border-color:#CBD5E1;}
-.outlook-item.favorable{background:var(--good-50);border-color:#BBF7D0;}
-.outlook-horizon{font-size:14px;font-weight:800;color:var(--text-tertiary);letter-spacing:.2px;margin-bottom:8px;}
-.outlook-direction{font-size:24px;font-weight:900;letter-spacing:-.6px;color:var(--text-primary);line-height:1.2;}
-.outlook-item.risk .outlook-direction{color:#B91C1C;}
-.outlook-item.down .outlook-direction{color:var(--down-strong);}
-.outlook-item.favorable .outlook-direction{color:#15803D;}
-.outlook-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-3);padding-top:var(--s-4);border-top:1px solid var(--border-soft);}
-.outlook-level{display:flex;flex-direction:column;gap:4px;min-width:0;}
-.outlook-level-label{font-size:13px;color:var(--text-tertiary);font-weight:800;letter-spacing:.2px;}
-.outlook-level-value{font-size:16px;color:var(--text-primary);font-weight:800;}
+/* HERMES OUTLOOK — Toss style v2 (재디자인 by 박정기 2026-05-19) */
+.outlook-card{
+  background:var(--bg-card);
+  border-radius:var(--r-2xl);
+  padding:var(--s-8);
+  margin-bottom:var(--s-6);
+  box-shadow:var(--shadow-sm);
+  animation:fadeInUp .7s .22s var(--ease) both;
+}
+.outlook-card.waiting{
+  background:var(--bg-card);
+}
+
+/* Header — 제목 + 상태 pill */
+.outlook-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:var(--s-4);
+  margin-bottom:var(--s-6);
+  flex-wrap:wrap;
+}
+.outlook-title{
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:-.5px;
+  color:var(--text-primary);
+}
+.outlook-sub{
+  font-size:15px;
+  color:var(--text-tertiary);
+  font-weight:500;
+  margin-top:6px;
+  line-height:1.5;
+  max-width:560px;
+}
+.outlook-action{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:var(--r-pill);
+  padding:7px 14px;
+  background:var(--bg-subtle);
+  color:var(--text-secondary);
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:-.1px;
+  white-space:nowrap;
+}
+.outlook-action.live{
+  background:var(--good-50);
+  color:var(--good);
+}
+.outlook-action.live::before{
+  content:'';
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--good);
+}
+
+/* 3-horizon grid — 통일된 subtle 배경 + 텍스트 색상으로만 의미 */
+.outlook-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:0;
+  margin-bottom:var(--s-5);
+  background:var(--bg-subtle);
+  border-radius:var(--r-xl);
+  padding:var(--s-6) var(--s-4);
+  position:relative;
+}
+.outlook-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:var(--s-3);
+  padding:0 var(--s-3);
+  background:transparent;
+  border:0;
+  border-radius:0;
+  position:relative;
+}
+.outlook-item + .outlook-item::before{
+  content:'';
+  position:absolute;
+  left:0;top:50%;
+  transform:translateY(-50%);
+  width:1px;height:42px;
+  background:var(--border);
+}
+.outlook-horizon{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-tertiary);
+  letter-spacing:0;
+  margin-bottom:0;
+  text-transform:none;
+}
+.outlook-direction{
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:-.4px;
+  color:var(--text-secondary);
+  line-height:1.3;
+}
+/* 의미 색상 — 텍스트에만 적용 (배경 X) */
+.outlook-item.risk .outlook-direction      { color:var(--up); }       /* 위험 = 한국 빨강 */
+.outlook-item.down .outlook-direction      { color:var(--down); }     /* 하락 = 한국 파랑 */
+.outlook-item.neutral .outlook-direction   { color:var(--text-secondary); }
+.outlook-item.favorable .outlook-direction { color:var(--good); }     /* 우호 = 초록 */
+/* 배경은 모두 동일하게 (시각 노이즈 제거) */
+.outlook-item.risk,
+.outlook-item.down,
+.outlook-item.neutral,
+.outlook-item.favorable{
+  background:transparent;
+  border:0;
+}
+
+/* 환율 가이드라인 — 두 번째 subtle row */
+.outlook-levels{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:0;
+  padding:var(--s-5) var(--s-4);
+  background:var(--bg-subtle);
+  border-radius:var(--r-xl);
+  border-top:0;
+}
+.outlook-level{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:6px;
+  padding:0 var(--s-3);
+  position:relative;
+}
+.outlook-level + .outlook-level::before{
+  content:'';
+  position:absolute;
+  left:0;top:50%;
+  transform:translateY(-50%);
+  width:1px;height:32px;
+  background:var(--border);
+}
+.outlook-level-label{
+  font-size:13px;
+  color:var(--text-tertiary);
+  font-weight:500;
+  letter-spacing:0;
+  text-transform:none;
+}
+.outlook-level-value{
+  font-size:18px;
+  color:var(--text-primary);
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.3px;
+}
 
 /* SECTION */
 .section{background:var(--bg-card);border-radius:var(--r-2xl);padding:var(--s-8);margin-bottom:var(--s-6);box-shadow:var(--shadow-sm);animation:fadeInUp .7s .25s var(--ease) both;}
@@ -262,7 +401,13 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 @media (max-width:1024px){
   .hero-grid{grid-template-columns:1fr;gap:var(--s-8);}
   .metrics-row{grid-template-columns:repeat(2,1fr);}
-  .outlook-grid,.outlook-levels{grid-template-columns:1fr;}
+  .outlook-grid,.outlook-levels{grid-template-columns:1fr;gap:var(--s-4);padding:var(--s-5);}
+  .outlook-item+.outlook-item::before,
+  .outlook-level+.outlook-level::before{display:none;}
+  .outlook-item{padding:var(--s-3) 0;border-top:1px solid var(--border);}
+  .outlook-item:first-child{border-top:0;padding-top:0;}
+  .outlook-level{padding:var(--s-2) 0;border-top:1px solid var(--border);}
+  .outlook-level:first-child{border-top:0;padding-top:0;}
   .bottom-row{grid-template-columns:1fr;}
   .hermes-report-grid{grid-template-columns:1fr;}
 }
