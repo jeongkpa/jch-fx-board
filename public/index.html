@@ -193,7 +193,17 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 .hermes-report-value{font-size:17px;color:var(--text-primary);font-weight:700;margin-bottom:var(--s-3);font-variant-numeric:tabular-nums;}
 .hermes-report-body{background:var(--bg-card);border:1px solid var(--border-soft);border-radius:var(--r-xl);padding:var(--s-6);min-height:180px;}
 .hermes-report-title{font-size:21px;font-weight:800;letter-spacing:-.4px;color:var(--text-primary);margin-bottom:var(--s-3);}
-.hermes-report-text{white-space:pre-wrap;font-family:var(--font);font-size:17px;line-height:1.7;color:var(--text-secondary);word-break:keep-all;}
+.hermes-report-text{font-family:var(--font);font-size:17px;line-height:1.72;color:var(--text-secondary);word-break:keep-all;}
+.hermes-report-text h1,.hermes-report-text h2,.hermes-report-text h3{color:var(--text-primary);letter-spacing:-.3px;line-height:1.35;margin:0 0 var(--s-4);}
+.hermes-report-text h1{font-size:24px;}
+.hermes-report-text h2{font-size:21px;margin-top:var(--s-6);}
+.hermes-report-text h3{font-size:18px;margin-top:var(--s-5);}
+.hermes-report-text p{margin:0 0 var(--s-4);}
+.hermes-report-text ul,.hermes-report-text ol{margin:0 0 var(--s-4);padding-left:1.45em;}
+.hermes-report-text li{margin:0 0 6px;}
+.hermes-report-text strong{color:var(--text-primary);font-weight:800;}
+.hermes-report-text a{color:var(--brand-strong);text-decoration:underline;text-underline-offset:2px;word-break:break-all;}
+.hermes-report-text hr{border:0;border-top:1px solid var(--border-soft);margin:var(--s-5) 0;}
 .hermes-report-empty{color:var(--text-tertiary);font-size:17px;line-height:1.7;}
 
 /* FOOTER */
@@ -1082,6 +1092,85 @@ function fmtReportTime(iso){
   return mm + '/' + dd + ' ' + hh + ':' + mi;
 }
 
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"']/g, function(ch){
+    return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[ch];
+  });
+}
+
+function renderInlineMarkdown(value){
+  let html = escapeHtml(value);
+  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  html = html.replace(/(?<!["'=])(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  return html;
+}
+
+function renderMarkdown(markdown){
+  const lines = String(markdown || '').replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let paragraph = [];
+  let list = null;
+
+  function flushParagraph(){
+    if (!paragraph.length) return;
+    blocks.push('<p>' + paragraph.map(renderInlineMarkdown).join('<br>') + '</p>');
+    paragraph = [];
+  }
+
+  function flushList(){
+    if (!list) return;
+    const tag = list.type === 'ol' ? 'ol' : 'ul';
+    blocks.push('<' + tag + '>' + list.items.map(function(item){
+      return '<li>' + renderInlineMarkdown(item) + '</li>';
+    }).join('') + '</' + tag + '>');
+    list = null;
+  }
+
+  lines.forEach(function(rawLine){
+    const line = rawLine.trimEnd();
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushParagraph();
+      flushList();
+      return;
+    }
+    const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      flushList();
+      const level = heading[1].length;
+      blocks.push('<h' + level + '>' + renderInlineMarkdown(heading[2]) + '</h' + level + '>');
+      return;
+    }
+    if (/^---+$/.test(trimmed)) {
+      flushParagraph();
+      flushList();
+      blocks.push('<hr>');
+      return;
+    }
+    const unordered = trimmed.match(/^[-*]\s+(.+)$/);
+    if (unordered) {
+      flushParagraph();
+      if (!list || list.type !== 'ul') { flushList(); list = { type:'ul', items:[] }; }
+      list.items.push(unordered[1]);
+      return;
+    }
+    const ordered = trimmed.match(/^\d+[.)]\s+(.+)$/);
+    if (ordered) {
+      flushParagraph();
+      if (!list || list.type !== 'ol') { flushList(); list = { type:'ol', items:[] }; }
+      list.items.push(ordered[1]);
+      return;
+    }
+    flushList();
+    paragraph.push(trimmed);
+  });
+  flushParagraph();
+  flushList();
+  return blocks.join('');
+}
+
 function renderHermesReport(report){
   const status = document.getElementById('hermes-report-status');
   const time = document.getElementById('hermes-report-time');
@@ -1110,7 +1199,7 @@ function renderHermesReport(report){
   source.textContent = report.source || 'Hermes';
   title.textContent = report.title || 'Hermes 보고';
   body.className = 'hermes-report-text';
-  body.textContent = report.markdown || report.summary || '본문 없음';
+  body.innerHTML = renderMarkdown(report.markdown || report.summary || '본문 없음');
 }
 
 async function fetchHermesReport(){
