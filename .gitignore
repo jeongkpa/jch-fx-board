@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Vercel (project ID — local only)
+.vercel/
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# macOS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build output
+.next/
+dist/
+build/

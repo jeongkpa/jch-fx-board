@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="description" content="JCH 시스템 외환(FX) 의사결정 대시보드">
+<title>FX 대시보드 · JCH 시스템</title>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+:root{
+  --bg-base:#F2F4F6; --bg-card:#FFFFFF; --bg-subtle:#F8F9FA; --bg-elevated:#FFFFFF;
+  --border:#E5E8EB; --border-soft:#EEF0F3;
+  --text-primary:#191F28; --text-secondary:#4E5968; --text-tertiary:#8B95A1; --text-quaternary:#B0B8C1;
+  --brand:#3182F6; --brand-strong:#1B64DA; --brand-hover:#1B64DA; --brand-50:#E8F3FF; --brand-100:#C7E0FF;
+  --up:#F04452; --up-strong:#E03842; --up-50:#FEE9EB; --up-100:#FCD3D7;
+  --down:#1B64DA; --down-strong:#0F4FB8; --down-50:#E5F0FF; --down-100:#C7DEFB;
+  --warn:#FF9500; --warn-50:#FFF4E5; --good:#16A34A; --good-50:#DCFCE7; --neutral:#8B95A1;
+  --shadow-xs:0 1px 2px rgba(0,0,0,.03); --shadow-sm:0 2px 8px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.05); --shadow-lg:0 8px 32px rgba(0,0,0,.08);
+  --shadow-hero:0 12px 48px rgba(49,130,246,.12);
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:20px; --r-2xl:24px; --r-pill:999px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px; --s-16:64px;
+  --font:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1); --ease-out:cubic-bezier(.0,0,.2,1); --ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:17px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
+body{font-family:var(--font);background:var(--bg-base);color:var(--text-primary);font-feature-settings:"ss01","cv11";line-height:1.55;font-weight:400;letter-spacing:-.01em;min-height:100vh;}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit;}
+a{color:inherit;text-decoration:none;}
+img,svg{display:block;}
+.num,.metric,.hero-num,.cell-num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
+.app{min-height:100vh;display:flex;flex-direction:column;}
+.container{max-width:1280px;margin:0 auto;padding:0 var(--s-6);width:100%;}
+
+/* HEADER */
+.header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--border-soft);}
+.header-inner{display:flex;align-items:center;justify-content:space-between;height:72px;}
+.brand{display:flex;align-items:center;gap:var(--s-3);}
+.brand-logo{width:36px;height:36px;border-radius:var(--r-md);background:linear-gradient(135deg,#3182F6 0%,#1B64DA 100%);display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;letter-spacing:-.5px;}
+.brand-name{font-size:18px;font-weight:700;letter-spacing:-.3px;color:var(--text-primary);}
+.brand-sub{font-size:13px;color:var(--text-tertiary);font-weight:500;margin-top:1px;}
+.header-right{display:flex;align-items:center;gap:var(--s-4);}
+.view-switch{display:inline-flex;background:var(--bg-subtle);border-radius:var(--r-pill);padding:4px;gap:2px;}
+.view-switch button{padding:9px 18px;font-size:15px;font-weight:600;color:var(--text-tertiary);border-radius:var(--r-pill);transition:all .2s var(--ease);}
+.view-switch button.active{background:var(--bg-card);color:var(--text-primary);box-shadow:var(--shadow-xs);}
+.live-dot{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--text-tertiary);font-weight:500;}
+.live-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 rgba(22,163,74,.5);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.5);}50%{box-shadow:0 0 0 7px rgba(22,163,74,0);}}
+.profile{width:40px;height:40px;border-radius:var(--r-pill);background:var(--brand-50);color:var(--brand-strong);display:grid;place-items:center;font-weight:700;font-size:15px;border:1px solid var(--brand-100);}
+
+main{flex:1;padding:var(--s-8) 0 var(--s-16);}
+
+/* GREETING */
+.greeting{margin-bottom:var(--s-8);animation:fadeInUp .6s var(--ease) both;}
+.greeting-title{font-size:32px;font-weight:700;letter-spacing:-.8px;color:var(--text-primary);margin-bottom:8px;}
+.greeting-sub{font-size:17px;color:var(--text-secondary);display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;}
+.greeting-meta{display:inline-flex;align-items:center;gap:6px;color:var(--text-tertiary);font-size:15px;}
+
+/* HERO */
+.hero{background:var(--bg-card);border-radius:var(--r-2xl);padding:var(--s-10) var(--s-10);margin-bottom:var(--s-6);position:relative;overflow:hidden;box-shadow:var(--shadow-md);animation:fadeInUp .7s .05s var(--ease) both;}
+.hero::before{content:'';position:absolute;top:0;right:0;width:560px;height:560px;background:radial-gradient(circle at 70% 30%, rgba(49,130,246,.08) 0%, transparent 60%);pointer-events:none;}
+.hero-grid{display:grid;grid-template-columns:1fr 340px;gap:var(--s-12);align-items:center;position:relative;z-index:1;}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:var(--brand-50);color:var(--brand-strong);padding:7px 14px;border-radius:var(--r-pill);font-size:14px;font-weight:700;letter-spacing:-.1px;margin-bottom:var(--s-5);}
+.hero-tag-dot{width:7px;height:7px;border-radius:50%;background:var(--brand);}
+.hero-title{font-size:19px;font-weight:600;color:var(--text-secondary);letter-spacing:-.3px;margin-bottom:var(--s-4);line-height:1.5;}
+.hero-num{font-size:72px;font-weight:800;letter-spacing:-2.8px;line-height:1.05;color:var(--text-primary);margin-bottom:var(--s-3);}
+.hero-num .unit{font-size:36px;font-weight:700;letter-spacing:-1px;color:var(--text-secondary);margin-right:8px;}
+.hero-krw{font-size:20px;color:var(--text-tertiary);font-weight:500;margin-bottom:var(--s-6);}
+.hero-metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s-5);padding:var(--s-5) 0;border-top:1px solid var(--border-soft);border-bottom:1px solid var(--border-soft);}
+.hero-metric-label{font-size:15px;color:var(--text-tertiary);font-weight:500;margin-bottom:8px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.hero-metric-val{font-size:28px;font-weight:700;letter-spacing:-.9px;color:var(--text-primary);}
+.hero-metric-delta{margin-left:8px;font-size:16px;font-weight:600;}
+.delta-up{color:var(--up);}
+.delta-down{color:var(--down);}
+.delta-flat{color:var(--text-tertiary);}
+.hero-reasons{margin-top:var(--s-6);}
+.hero-reason-title{font-size:14px;color:var(--text-tertiary);font-weight:600;letter-spacing:.2px;text-transform:uppercase;margin-bottom:var(--s-3);}
+.hero-reason-list{display:flex;flex-direction:column;gap:var(--s-3);list-style:none;}
+.hero-reason-list li{display:flex;align-items:flex-start;gap:var(--s-3);font-size:17px;color:var(--text-primary);line-height:1.55;}
+.reason-icon{flex-shrink:0;width:22px;height:22px;border-radius:6px;background:var(--brand-50);color:var(--brand-strong);display:grid;place-items:center;margin-top:2px;}
+.reason-icon svg{width:13px;height:13px;}
+.hero-side{background:var(--bg-subtle);border-radius:var(--r-xl);padding:var(--s-6);}
+.hero-side-title{font-size:16px;font-weight:600;color:var(--text-secondary);margin-bottom:var(--s-3);display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);}
+.hero-side-rate{font-size:42px;font-weight:800;letter-spacing:-1.6px;color:var(--text-primary);}
+.hero-side-delta{display:inline-flex;align-items:center;gap:4px;font-size:16px;font-weight:700;padding:5px 12px;border-radius:var(--r-pill);margin-top:var(--s-3);}
+.hero-side-delta.up{background:var(--up-50);color:var(--up);}
+.hero-side-delta.down{background:var(--down-50);color:var(--down);}
+.hero-side-delta.flat{background:var(--bg-card);color:var(--text-tertiary);}
+.hero-chart{margin-top:var(--s-5);height:88px;}
+.hero-source{margin-top:var(--s-6);display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--text-quaternary);flex-wrap:wrap;gap:var(--s-2);}
+.hero-source-pill{padding:5px 12px;background:var(--bg-subtle);border-radius:var(--r-pill);font-weight:500;color:var(--text-tertiary);font-size:13px;}
+
+/* Staleness states */
+.staleness-fresh{background:var(--good) !important;box-shadow:0 0 0 3px var(--good-50);}
+.staleness-stale{background:var(--warn) !important;box-shadow:0 0 0 3px var(--warn-50);}
+.staleness-old{background:var(--up) !important;box-shadow:0 0 0 3px var(--up-50);}
+
+/* METRICS ROW */
+.metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-4);margin-bottom:var(--s-6);}
+.metric-card{background:var(--bg-card);border-radius:var(--r-xl);padding:var(--s-6);box-shadow:var(--shadow-sm);transition:transform .25s var(--ease),box-shadow .25s var(--ease);animation:fadeInUp .7s var(--ease) both;}
+.metric-card:nth-child(1){animation-delay:.1s;}
+.metric-card:nth-child(2){animation-delay:.15s;}
+.metric-card:nth-child(3){animation-delay:.2s;}
+.metric-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.metric-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s-3);}
+.metric-label{font-size:16px;font-weight:600;color:var(--text-secondary);letter-spacing:-.2px;}
+.metric-tag{font-size:13px;font-weight:700;padding:4px 10px;border-radius:var(--r-pill);background:var(--bg-subtle);color:var(--text-tertiary);letter-spacing:.2px;}
+.metric-val{font-size:36px;font-weight:800;letter-spacing:-1.1px;line-height:1.1;color:var(--text-primary);margin-bottom:var(--s-2);}
+.metric-delta{display:inline-flex;align-items:center;gap:4px;font-size:15px;font-weight:600;}
+.metric-extra{margin-top:var(--s-4);height:64px;position:relative;}
+.metric-list{display:flex;flex-direction:column;gap:var(--s-2);margin-top:var(--s-3);}
+.metric-list-item{display:flex;align-items:center;justify-content:space-between;font-size:15px;}
+.metric-list-name{color:var(--text-secondary);font-weight:500;}
+.metric-list-val{color:var(--text-primary);font-weight:600;}
+.metric-bar-track{height:8px;background:var(--bg-subtle);border-radius:var(--r-pill);overflow:hidden;margin-top:var(--s-3);}
+.metric-bar-fill{height:100%;background:var(--brand);border-radius:var(--r-pill);transition:width 1.2s var(--ease-out);}
+
+/* SECTION */
+.section{background:var(--bg-card);border-radius:var(--r-2xl);padding:var(--s-8);margin-bottom:var(--s-6);box-shadow:var(--shadow-sm);animation:fadeInUp .7s .25s var(--ease) both;}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s-6);flex-wrap:wrap;gap:var(--s-3);}
+.section-title{font-size:22px;font-weight:700;letter-spacing:-.5px;color:var(--text-primary);display:flex;align-items:center;gap:var(--s-3);}
+.section-title .badge{background:var(--bg-subtle);color:var(--text-secondary);font-size:14px;font-weight:600;padding:4px 12px;border-radius:var(--r-pill);letter-spacing:0;}
+.section-controls{display:flex;align-items:center;gap:var(--s-2);}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--r-pill);background:var(--bg-subtle);color:var(--text-secondary);font-size:15px;font-weight:600;border:1px solid transparent;transition:all .2s var(--ease);}
+.chip:hover{background:var(--border-soft);}
+.chip.active{background:var(--brand-50);color:var(--brand-strong);border-color:var(--brand-100);}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;margin:0 calc(-1 * var(--s-8));padding:0 var(--s-8);}
+.vt{width:100%;border-collapse:collapse;font-size:16px;}
+.vt thead th{text-align:left;font-size:13px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;color:var(--text-tertiary);padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--border-soft);white-space:nowrap;}
+.vt thead th.right{text-align:right;}
+.vt thead th.center{text-align:center;}
+.vt tbody tr{transition:background .15s var(--ease);}
+.vt tbody tr:hover{background:var(--bg-subtle);}
+.vt tbody td{padding:var(--s-4);border-bottom:1px solid var(--border-soft);vertical-align:middle;}
+.vt tbody tr:last-child td{border-bottom:0;}
+.vt .right{text-align:right;}
+.vt .center{text-align:center;}
+.vt .vendor-cell{display:flex;align-items:center;gap:var(--s-3);}
+.vendor-avatar{width:40px;height:40px;border-radius:var(--r-md);background:var(--bg-subtle);color:var(--text-secondary);display:grid;place-items:center;font-weight:700;font-size:13px;letter-spacing:-.3px;flex-shrink:0;}
+.vendor-name{font-weight:600;color:var(--text-primary);font-size:16px;}
+.vendor-sub{font-size:13px;color:var(--text-tertiary);font-weight:500;margin-top:2px;}
+.gap-pill{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:var(--r-pill);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;}
+.gap-pill.up{background:var(--up-50);color:var(--up);}
+.gap-pill.down{background:var(--down-50);color:var(--down);}
+.gap-pill.flat{background:var(--bg-subtle);color:var(--text-tertiary);}
+.action-pill{display:inline-flex;align-items:center;padding:6px 14px;border-radius:var(--r-pill);font-size:14px;font-weight:700;letter-spacing:-.1px;white-space:nowrap;}
+.action-pill.buy-100{background:#DCFCE7;color:#15803D;}
+.action-pill.buy-80{background:#D1FAE5;color:#047857;}
+.action-pill.buy-70{background:#E0F2FE;color:#0369A1;}
+.action-pill.buy-50{background:#E8F3FF;color:var(--brand-strong);}
+.action-pill.hold{background:#FEF3C7;color:#B45309;}
+.action-pill.wait{background:#F2F4F6;color:var(--text-tertiary);}
+.cell-num{font-weight:600;color:var(--text-primary);}
+.cell-num-sub{color:var(--text-tertiary);font-size:13px;font-weight:500;margin-top:2px;}
+
+/* BOTTOM ROW */
+.bottom-row{display:grid;grid-template-columns:1.2fr 1fr;gap:var(--s-6);}
+.bottom-card{background:var(--bg-card);border-radius:var(--r-2xl);padding:var(--s-8);box-shadow:var(--shadow-sm);animation:fadeInUp .7s .3s var(--ease) both;}
+.position-chart{height:240px;margin-top:var(--s-4);}
+.position-summary{display:flex;justify-content:space-between;align-items:center;margin-top:var(--s-4);padding-top:var(--s-4);border-top:1px solid var(--border-soft);}
+.position-summary-item{flex:1;}
+.position-summary-label{font-size:13px;color:var(--text-tertiary);font-weight:600;margin-bottom:4px;letter-spacing:.2px;text-transform:uppercase;}
+.position-summary-val{font-size:22px;font-weight:700;letter-spacing:-.5px;color:var(--text-primary);}
+.timeline{display:flex;flex-direction:column;margin-top:var(--s-2);}
+.tl-item{display:flex;align-items:center;gap:var(--s-4);padding:var(--s-4) 0;border-bottom:1px solid var(--border-soft);}
+.tl-item:last-child{border-bottom:0;}
+.tl-date{flex-shrink:0;width:90px;font-size:14px;color:var(--text-tertiary);font-weight:500;font-variant-numeric:tabular-nums;}
+.tl-info{flex:1;min-width:0;}
+.tl-info-top{display:flex;align-items:center;gap:10px;margin-bottom:3px;}
+.tl-vendor{font-size:16px;font-weight:600;color:var(--text-primary);}
+.tl-amount{font-size:15px;color:var(--text-secondary);font-weight:500;}
+.tl-rate{font-size:14px;color:var(--text-tertiary);}
+.tl-result{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:var(--r-pill);font-size:14px;font-weight:700;}
+.tl-result.gain{background:var(--down-50);color:var(--down);}
+.tl-result.loss{background:var(--up-50);color:var(--up);}
+.tl-result.par{background:var(--bg-subtle);color:var(--text-tertiary);}
+
+/* FOOTER */
+.footer{margin-top:var(--s-16);padding:var(--s-8) 0;border-top:1px solid var(--border-soft);font-size:13px;color:var(--text-quaternary);}
+.footer-grid{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s-3);}
+.footer-sources{display:flex;gap:var(--s-2);flex-wrap:wrap;}
+.footer-sources .hero-source-pill{font-size:12px;}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+@media (max-width:1024px){
+  .hero-grid{grid-template-columns:1fr;gap:var(--s-8);}
+  .metrics-row{grid-template-columns:repeat(2,1fr);}
+  .bottom-row{grid-template-columns:1fr;}
+}
+@media (max-width:768px){
+  html{font-size:16px;}
+  .container{padding:0 var(--s-4);}
+  main{padding:var(--s-5) 0 var(--s-10);}
+  .header-inner{height:60px;}
+  .brand-name{font-size:16px;}
+  .brand-sub{font-size:12px;}
+  .view-switch button{padding:7px 14px;font-size:14px;}
+  .greeting-title{font-size:24px;}
+  .greeting-sub{font-size:16px;}
+  .hero{padding:var(--s-6);border-radius:var(--r-xl);}
+  .hero-title{font-size:17px;}
+  .hero-num{font-size:50px;letter-spacing:-1.7px;}
+  .hero-num .unit{font-size:28px;}
+  .hero-krw{font-size:17px;}
+  .hero-metrics{grid-template-columns:1fr;gap:var(--s-3);}
+  .hero-metric-val{font-size:24px;}
+  .hero-reason-list li{font-size:15px;}
+  .hero-side-rate{font-size:34px;}
+  .metrics-row{grid-template-columns:1fr;}
+  .metric-val{font-size:30px;}
+  .section{padding:var(--s-5);border-radius:var(--r-xl);}
+  .section-title{font-size:19px;}
+  .vt{font-size:15px;}
+  .vendor-name{font-size:15px;}
+  .bottom-card{padding:var(--s-5);}
+  .tl-date{width:70px;font-size:13px;}
+  .tl-vendor{font-size:15px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="header">
+  <div class="container header-inner">
+    <div class="brand">
+      <div class="brand-logo">FX</div>
+      <div>
+        <div class="brand-name">FX 대시보드</div>
+        <div class="brand-sub">JCH 시스템 · 외환 운영</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-dot" id="live-status">실시간 14:32</div>
+      <div class="profile" title="차상무님">차</div>
+    </div>
+  </div>
+</header>
+
+<main>
+<div class="container">
+
+  <div class="greeting">
+    <h1 class="greeting-title">안녕하세요, 차상무님</h1>
+    <div class="greeting-sub">
+      <span id="greeting-date">오늘은 2026년 5월 19일 월요일입니다.</span>
+      <span class="greeting-meta">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        마지막 환율 갱신 <span id="last-updated-text">로딩 중...</span>
+      </span>
+    </div>
+  </div>
+
+  <section class="hero">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-tag">
+          <span class="hero-tag-dot"></span>
+          오늘 만기 도래 · AI 보조 분석
+        </div>
+        <div class="hero-title">오늘(5/18) 만기 도래분 3개 vendor 결제 필요</div>
+
+        <div class="hero-num">
+          <span class="unit">USD</span><span id="hero-amount">2,184,080</span>
+        </div>
+        <div class="hero-krw">≈ 약 <span id="hero-krw">32억 7,162만</span>원 (현재환율 기준)</div>
+
+        <div class="hero-metrics">
+          <div>
+            <div class="hero-metric-label">
+              총 미체결 잔량
+              <span style="font-size:12px;color:var(--text-quaternary);font-weight:500;">4 active vendor · 6 만기</span>
+            </div>
+            <div class="hero-metric-val">
+              $6.32M
+              <span class="hero-metric-delta" style="color:var(--text-tertiary);font-weight:500;font-size:14px;">/ KRW 약 94.7억</span>
+            </div>
+          </div>
+          <div>
+            <div class="hero-metric-label">5/18 만기 원가환율</div>
+            <div class="hero-metric-val">
+              1,472.60
+              <span class="hero-metric-delta delta-up" id="hero-gap-delta">갭 +25.90 vs 시장</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hero-side">
+        <div class="hero-side-title">
+          <span>USD/KRW <span id="hero-side-pair-source">(매매기준율)</span></span>
+          <span id="cross-check-badge" style="font-size:12px;color:var(--text-quaternary);font-weight:500;"></span>
+        </div>
+        <div class="hero-side-rate" id="hero-side-rate">1,479.50</div>
+        <div class="hero-side-delta up" id="hero-side-delta">▲ +1.20 (+0.08%)</div>
+        <div id="hero-side-baseline" style="font-size:12px;color:var(--text-quaternary);font-weight:500;margin-top:6px;">전 영업일 종가 대비</div>
+        <div class="hero-chart"><canvas id="heroChart"></canvas></div>
+        <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:var(--text-quaternary);font-weight:500;">
+          <span id="hero-today-min">오늘 시가 —</span>
+          <span style="font-weight:600;color:var(--text-tertiary);">오늘 (시간당)</span>
+          <span id="hero-today-max">최고 —</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-source" style="justify-content:flex-end;">
+      <div>* 참고용 의견 · 최종 매입 결정은 차상무님께서 판단해주세요</div>
+    </div>
+  </section>
+
+  <section class="metrics-row">
+
+    <div class="metric-card">
+      <div class="metric-head">
+        <div class="metric-label">환율 변동</div>
+        <span class="metric-tag" id="m1-tag">1개월</span>
+      </div>
+      <div class="metric-val num" id="m1-rate-val">1,479.50</div>
+      <div class="metric-delta delta-down" id="m1-rate-delta">▼ −5.70원 (1개월)</div>
+      <div class="metric-extra"><canvas id="m1Chart"></canvas></div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-head">
+        <div class="metric-label">만기 임박</div>
+        <span class="metric-tag" style="background:var(--up-50);color:var(--up);">D-Day · 결제 필요</span>
+      </div>
+      <div class="metric-val num">$3.64M</div>
+      <div class="metric-delta" style="color:var(--text-secondary);">총 <strong style="color:var(--text-primary);">2건</strong> · D-Day + D-4</div>
+      <div class="metric-list">
+        <div class="metric-list-item">
+          <span class="metric-list-name"><strong style="color:var(--up);">5/18 (오늘)</strong> 3 vendor</span>
+          <span class="metric-list-val num">$2.18M</span>
+        </div>
+        <div class="metric-list-item">
+          <span class="metric-list-name">5/22 (금) GIGA</span>
+          <span class="metric-list-val num">$1.46M</span>
+        </div>
+        <div class="metric-list-item">
+          <span class="metric-list-name" style="color:var(--text-tertiary);">D-7 외 4건</span>
+          <span class="metric-list-val num" style="color:var(--text-tertiary);">$9.00M</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-head">
+        <div class="metric-label">헷지 커버리지</div>
+        <span class="metric-tag">R12M 롤링</span>
+      </div>
+      <div class="metric-val num">67.8<span style="font-size:22px;color:var(--text-tertiary);">%</span></div>
+      <div class="metric-delta delta-down">▲ +2.1%p (전월 대비)</div>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:14px;">
+        <div>
+          <div style="font-size:12px;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:.2px;margin-bottom:3px;">정책</div>
+          <div style="font-weight:700;">30%</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:.2px;margin-bottom:3px;">실측</div>
+          <div style="font-weight:700;color:var(--brand-strong);">67.8%</div>
+        </div>
+      </div>
+      <div class="metric-bar-track">
+        <div class="metric-bar-fill" id="coverageBar" style="width:0;background:linear-gradient(90deg,var(--brand) 0%,var(--brand-strong) 100%);"></div>
+      </div>
+    </div>
+
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">
+        Vendor 현황
+        <span class="badge">13개 vendor · 4 active · 미체결 $6.32M</span>
+      </h2>
+      <div class="section-controls">
+        <button class="chip active" data-sort="gap">갭 큰 순</button>
+        <button class="chip" data-sort="amount">금액 큰 순</button>
+        <button class="chip" data-sort="maturity">만기 빠른 순</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="vt">
+        <thead>
+          <tr>
+            <th>Vendor</th>
+            <th class="right">Open ($)</th>
+            <th class="right">원가환율</th>
+            <th class="right">현재환율</th>
+            <th class="right">갭 (원)</th>
+            <th class="right">만기</th>
+            <th class="center">AI 추천</th>
+          </tr>
+        </thead>
+        <tbody id="vendor-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="bottom-row">
+
+    <div class="bottom-card">
+      <div class="section-head" style="margin-bottom:var(--s-4);">
+        <h2 class="section-title">선물환 포지션 분포</h2>
+        <span class="metric-tag">만기 월별</span>
+      </div>
+      <div class="position-chart"><canvas id="positionChart"></canvas></div>
+      <div class="position-summary">
+        <div class="position-summary-item">
+          <div class="position-summary-label">총 미체결</div>
+          <div class="position-summary-val num">$12.64M</div>
+        </div>
+        <div class="position-summary-item" style="text-align:center;">
+          <div class="position-summary-label">가중 평균 원가</div>
+          <div class="position-summary-val num">1,491.05</div>
+        </div>
+        <div class="position-summary-item" style="text-align:right;">
+          <div class="position-summary-label">현재 평가 (vs 1,498)</div>
+          <div class="position-summary-val num" style="color:var(--up);">−87.7만원/건</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-card">
+      <div class="section-head" style="margin-bottom:var(--s-4);">
+        <h2 class="section-title">최근 체결</h2>
+        <a href="#" class="chip" style="font-size:13px;">전체 보기</a>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <div class="footer-grid">
+      <div>© 2026 JCH 시스템 · FX Dashboard v1.2 · Phase 0 (NAS sync 대기 / 네이버 환율 live)</div>
+      <div class="footer-sources">
+        <span class="hero-source-pill">월별외자결제…xls</span>
+        <span class="hero-source-pill">선물환계약 196건</span>
+        <span class="hero-source-pill">네이버 · yfinance live</span>
+        <span class="hero-source-pill">Pretendard · Toss Design</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+</main>
+</div>
+
+<script>
+'use strict';
+
+const RATES_30D = [
+  1485.20,1487.10,1484.80,1482.30,1481.50,
+  1492.00,1489.40,1486.70,1483.20,1480.10,
+  1478.60,1475.40,1473.10,1471.80,1469.50,
+  1468.00,1470.20,1472.80,1474.10,1473.50,
+  1475.20,1476.80,1474.30,1472.50,1473.90,
+  1475.60,1476.40,1477.80,1478.30,1479.50
+];
+
+// 30-day daily series (last point = 오늘, updated live by fetchLiveRate)
+const RATES_DATES_30D = [
+  '4/16','4/17','4/18','4/19','4/20','4/23','4/24','4/25','4/26','4/27',
+  '4/30','5/1','5/2','5/3','5/4','5/7','5/8','5/9','5/10','5/11',
+  '5/12','5/13','5/14','5/15','5/16','5/17','5/18','5/19','5/20','오늘'
+];
+
+// 오늘 시간당 시계열 (KRX 거래 시간 09:00~15:00 + 현재)
+// 마지막 포인트 '현재'는 fetchLiveRate가 매 폴링마다 갱신
+let RATES_TODAY_HOURLY = [
+  1496.50, 1497.20, 1497.80, 1497.50, 1498.10, 1498.40, 1498.60, 1498.50
+];
+const RATES_TODAY_LABELS = [
+  '09:00','10:00','11:00','12:00','13:00','14:00','15:00','현재'
+];
+
+// Chart instance refs (for live update without full re-render)
+let heroChartInstance = null;
+let m1ChartInstance = null;
+
+// 차상무님 워크북 v2 (2026-05-18 수령) 실데이터
+// 출처: 2026.월별외자결제및선현물환매입내역 (1).xls > 외화결제 시트 R4 + 만기별 행
+const VENDORS = [
+  // Active (미체결 잔량 > 0) — 4 vendors
+  { code:'GIGA',name:'GIGABYTE',        category:'메인보드',           open:5432550, cost:1472.60, maturity:'2026-05-18' },
+  { code:'OCN', name:'OCEAN',           category:'부품',              open:556480,  cost:1472.60, maturity:'2026-05-18' },
+  { code:'CSC', name:'CommScope',       category:'네트워크',           open:216256,  cost:1486.00, maturity:'2026-05-27' },
+  { code:'CHJ', name:'Changjia',        category:'부품',              open:116000,  cost:1472.60, maturity:'2026-05-18' },
+  // Cleared (잔량 0) — 9 vendors (4/28 ~ 5/18 사이 전량 결제 완료)
+  { code:'AMD', name:'AMD',             category:'CPU·GPU',           open:0, cost:0, maturity:null },
+  { code:'PNY', name:'PNY V-COLOR',     category:'메모리·그래픽',      open:0, cost:0, maturity:null },
+  { code:'BS',  name:'BIOSTAR',         category:'메인보드',           open:0, cost:0, maturity:null },
+  { code:'ALS', name:'ALSEYE',          category:'쿨러·PC부품',        open:0, cost:0, maturity:null },
+  { code:'BOE', name:'BOE',             category:'디스플레이 (사후T/T)',open:0, cost:0, maturity:null },
+  { code:'PFD', name:'Perfect Display', category:'디스플레이',         open:0, cost:0, maturity:null },
+  { code:'HKC', name:'HKC',             category:'디스플레이',         open:0, cost:0, maturity:null },
+  { code:'KTC', name:'KTC',             category:'디스플레이',         open:0, cost:0, maturity:null },
+  { code:'SNC', name:'SANC',            category:'부품',              open:0, cost:0, maturity:null }
+];
+
+let CURRENT_RATE = 1479.50;
+let CURRENT_BASE_RATE = 1479.50;
+let PREVIOUS_RATE = 1478.30;      // 초기값 — fetchHistory30D가 실제 전영업일 종가로 덮어씀
+let PREVIOUS_CLOSE_LABEL = null;  // 전영업일 라벨 (예: '5/14')
+let LAST_FETCHED = null;
+let RATE_SOURCE = 'mock';
+let CROSS_CHECK = null;
+let CURRENT_SORT = 'gap';
+
+function recommend(cost, current, open){
+  if (!open || open === 0) return { pct:0, label:'잔량 없음', cls:'wait' };
+  if (!cost || cost === 0) return { pct:0, label:'원가 미정', cls:'hold' };
+  const gap = current - cost;
+  if(gap <= -2.5) return { pct:100,label:'100% 매입',cls:'buy-100' };
+  if(gap <  0)    return { pct:80, label:'80% 매입', cls:'buy-80'  };
+  if(gap <  1)    return { pct:100,label:'100% 매입',cls:'buy-100' };
+  if(gap <  3)    return { pct:70, label:'70% 분할', cls:'buy-70'  };
+  if(gap <  6)    return { pct:50, label:'50% 분할', cls:'buy-50'  };
+  if(gap < 10)    return { pct:0,  label:'보류',     cls:'hold'   };
+  return { pct:0, label:'매입 대기', cls:'wait' };
+}
+
+// 최근 체결 = 차상무님 워크북 v1→v2 사이 정리된 14개 만기 중 최근 7건 (결제 완료 history)
+const RECENT = [
+  { date:'5/15', vendor:'(소액 정산)',       amount:53400,    rate:1495.00, cost:1485.00, result:'loss' },
+  { date:'5/11', vendor:'PNY V-COLOR',      amount:476250,   rate:1485.50, cost:1482.00, result:'loss' },
+  { date:'5/08', vendor:'AMD (크레딧 정산)', amount:1397540,  rate:1480.20, cost:1475.00, result:'loss' },
+  { date:'5/04', vendor:'AMD',              amount:407200,   rate:1478.30, cost:1473.00, result:'loss' },
+  { date:'4/30', vendor:'GIGABYTE',         amount:765733,   rate:1472.10, cost:1478.00, result:'gain' },
+  { date:'4/27', vendor:'BIOSTAR',          amount:510450,   rate:1469.80, cost:1476.00, result:'gain' },
+  { date:'4/24', vendor:'GIGA+AMD 일괄',     amount:5463085,  rate:1471.20, cost:1480.00, result:'gain' }
+];
+
+// 선물환 포지션 분포 = 5/18 현재 미체결 6개 만기를 월별 집계
+// 5월 (4건): 5/18 $2.18M + 5/22 $1.46M + 5/27 $0.63M + 5/29 $1.90M = $6,178,995
+// 6월 (2건): 6/05 $65K + 6/15 $6.40M = $6,463,578
+const POSITION = [
+  { month:'5월', amount:6178995, avg:1478.60 },
+  { month:'6월', amount:6463578, avg:1503.50 }
+];
+
+function fmtUSD(n){ return '$' + n.toLocaleString('en-US'); }
+function fmtRate(n){ return n.toFixed(2); }
+function fmtDate(iso){
+  const parts = iso.split('-');
+  return parseInt(parts[1]) + '/' + parseInt(parts[2]);
+}
+function dDayCalc(iso){
+  // 오늘 = 2026-05-19 (워크북 v2 적용 시점 기준)
+  const today = new Date(2026,4,19);
+  const d = new Date(iso);
+  return Math.round((d - today) / 86400000);
+}
+
+function renderVendors(sortKey){
+  CURRENT_SORT = sortKey || CURRENT_SORT;
+  const tbody = document.getElementById('vendor-tbody');
+  let rows = VENDORS.map(v => {
+    const isActive = v.open > 0 && v.cost > 0;
+    const gap = isActive ? (CURRENT_RATE - v.cost) : 0;
+    const rec = recommend(v.cost, CURRENT_RATE, v.open);
+    const dday = v.maturity ? dDayCalc(v.maturity) : null;
+    return Object.assign({}, v, { gap, rec, dday, isActive });
+  });
+
+  // Active (잔량>0) 먼저, cleared (잔량=0) 뒤로
+  rows.sort((a, b) => {
+    if (a.isActive !== b.isActive) return b.isActive - a.isActive;
+    if (CURRENT_SORT === 'gap')      return Math.abs(b.gap) - Math.abs(a.gap);
+    if (CURRENT_SORT === 'amount')   return b.open - a.open;
+    if (CURRENT_SORT === 'maturity') {
+      if (a.dday === null) return 1;
+      if (b.dday === null) return -1;
+      return a.dday - b.dday;
+    }
+    return 0;
+  });
+
+  tbody.innerHTML = rows.map(v => {
+    const initials = v.code.slice(0, 3);
+
+    if (!v.isActive) {
+      // Cleared row — dim style, "잔량 없음"
+      return '<tr style="opacity:.45;">'
+        + '<td><div class="vendor-cell"><div class="vendor-avatar">' + initials + '</div>'
+        + '<div><div class="vendor-name">' + v.name + '</div><div class="vendor-sub">' + v.category + '</div></div></div></td>'
+        + '<td class="right"><div class="cell-num num" style="color:var(--text-tertiary);">$0</div></td>'
+        + '<td class="right"><div class="cell-num num" style="color:var(--text-quaternary);">—</div></td>'
+        + '<td class="right"><div class="cell-num num">' + fmtRate(CURRENT_RATE) + '</div></td>'
+        + '<td class="right"><span class="gap-pill flat">—</span></td>'
+        + '<td class="right"><div class="cell-num" style="color:var(--text-quaternary);">—</div></td>'
+        + '<td class="center"><span class="action-pill wait">잔량 없음</span></td>'
+        + '</tr>';
+    }
+
+    const gapCls = v.gap > 0.5 ? 'up' : (v.gap < -0.5 ? 'down' : 'flat');
+    const gapSym = v.gap > 0 ? '+' : (v.gap < 0 ? '−' : '');
+    const gapAbs = Math.abs(v.gap).toFixed(2);
+    return '<tr>'
+      + '<td><div class="vendor-cell"><div class="vendor-avatar">' + initials + '</div>'
+      + '<div><div class="vendor-name">' + v.name + '</div><div class="vendor-sub">' + v.category + '</div></div></div></td>'
+      + '<td class="right"><div class="cell-num num">' + fmtUSD(v.open) + '</div></td>'
+      + '<td class="right"><div class="cell-num num">' + fmtRate(v.cost) + '</div></td>'
+      + '<td class="right"><div class="cell-num num">' + fmtRate(CURRENT_RATE) + '</div></td>'
+      + '<td class="right"><span class="gap-pill ' + gapCls + '">' + gapSym + gapAbs + '</span></td>'
+      + '<td class="right"><div class="cell-num">' + fmtDate(v.maturity) + '</div>'
+      + '<div class="cell-num-sub">D' + (v.dday >= 0 ? '-' : '+') + Math.abs(v.dday) + '</div></td>'
+      + '<td class="center"><span class="action-pill ' + v.rec.cls + '">' + v.rec.label + '</span></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function renderTimeline(){
+  const tl = document.getElementById('timeline');
+  const labelMap = { gain:'+ 이익', loss:'− 손해', par:'동등' };
+  tl.innerHTML = RECENT.map(t =>
+    '<div class="tl-item">'
+    + '<div class="tl-date">' + t.date + '</div>'
+    + '<div class="tl-info"><div class="tl-info-top">'
+    + '<span class="tl-vendor">' + t.vendor + '</span>'
+    + '<span class="tl-amount num">' + fmtUSD(t.amount) + '</span></div>'
+    + '<div class="tl-rate num">@ ' + fmtRate(t.rate) + ' · 원가 ' + fmtRate(t.cost) + '</div></div>'
+    + '<div class="tl-result ' + t.result + '">' + labelMap[t.result] + '</div>'
+    + '</div>'
+  ).join('');
+}
+
+Chart.defaults.font.family = "'Pretendard Variable', Pretendard, system-ui";
+Chart.defaults.font.size = 13;
+Chart.defaults.color = '#8B95A1';
+Chart.defaults.borderColor = '#EEF0F3';
+
+function tossLineChart(canvasId, labels, data, opts){
+  opts = opts || {};
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  const h = opts.height || 88;
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'rgba(49,130,246,.22)');
+  grad.addColorStop(1,'rgba(49,130,246,0)');
+
+  return new Chart(ctx, {
+    type:'line',
+    data:{
+      labels:labels,
+      datasets:[{
+        data:data,
+        borderColor:'#3182F6',
+        backgroundColor:grad,
+        borderWidth:2.5,
+        fill:true,
+        tension:.35,
+        pointRadius:0,
+        pointHoverRadius:5,
+        pointHoverBackgroundColor:'#3182F6',
+        pointHoverBorderColor:'#fff',
+        pointHoverBorderWidth:2
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      animation:{duration:1200,easing:'easeOutQuart'},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#191F28',
+          padding:12,
+          cornerRadius:8,
+          titleFont:{weight:600,size:13},
+          bodyFont:{size:14,weight:700},
+          displayColors:false,
+          callbacks:{label:function(c){ return c.parsed.y.toFixed(2) + ' 원'; }}
+        }
+      },
+      scales:{
+        x:{display:false,grid:{display:false}},
+        y:{display:false,grid:{color:'#F2F4F6'}}
+      },
+      interaction:{intersect:false,mode:'index'}
+    }
+  });
+}
+
+function renderHeroChart(){
+  // 오늘 1일 기준 시간당 차트 (KRX 09:00 ~ 현재)
+  heroChartInstance = tossLineChart('heroChart', RATES_TODAY_LABELS, RATES_TODAY_HOURLY, { height:88 });
+  updateHeroMinMax();
+}
+function renderM1Chart(){
+  // 1개월 일별 차트 (30 daily points)
+  m1ChartInstance = tossLineChart('m1Chart', RATES_DATES_30D, RATES_30D, { height:64 });
+}
+
+// Hero 차트 아래 min/max 라벨 갱신
+function updateHeroMinMax(){
+  const minEl = document.getElementById('hero-today-min');
+  const maxEl = document.getElementById('hero-today-max');
+  if (!minEl || !maxEl) return;
+  const vals = RATES_TODAY_HOURLY.filter(v => typeof v === 'number' && !isNaN(v));
+  if (vals.length === 0) return;
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  minEl.textContent = '오늘 최저 ' + min.toFixed(2);
+  maxEl.textContent = '최고 ' + max.toFixed(2);
+}
+
+// 라이브 환율 폴링 시 양쪽 차트의 마지막 포인트 갱신
+function updateChartsLive(){
+  // 1) Hero 시간당 차트: 마지막 포인트 '현재' = 라이브 매매기준율
+  if (heroChartInstance) {
+    RATES_TODAY_HOURLY[RATES_TODAY_HOURLY.length - 1] = CURRENT_BASE_RATE;
+    heroChartInstance.data.datasets[0].data = RATES_TODAY_HOURLY.slice();
+    heroChartInstance.update('none');
+    updateHeroMinMax();
+  }
+  // 2) Metric 1개월 차트: 마지막 포인트 '오늘' = 라이브 매매기준율
+  if (m1ChartInstance) {
+    RATES_30D[RATES_30D.length - 1] = CURRENT_BASE_RATE;
+    m1ChartInstance.data.datasets[0].data = RATES_30D.slice();
+    m1ChartInstance.update('none');
+  }
+}
+
+function renderPositionChart(){
+  const ctx = document.getElementById('positionChart').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,240);
+  grad.addColorStop(0,'#3182F6');
+  grad.addColorStop(1,'#1B64DA');
+
+  new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: POSITION.map(function(p){ return p.month; }),
+      datasets:[{
+        data: POSITION.map(function(p){ return p.amount; }),
+        backgroundColor:grad,
+        borderRadius:{ topLeft:8, topRight:8, bottomLeft:0, bottomRight:0 },
+        borderSkipped:false,
+        barPercentage:.6,
+        categoryPercentage:.7,
+        hoverBackgroundColor:'#1B64DA'
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      animation:{duration:1400,easing:'easeOutQuart'},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#191F28',
+          padding:13,
+          cornerRadius:10,
+          displayColors:false,
+          titleFont:{weight:700,size:14},
+          bodyFont:{size:13,weight:500},
+          callbacks:{
+            title:function(items){ return items[0].label; },
+            label:function(c){
+              const p = POSITION[c.dataIndex];
+              return ['금액  ' + fmtUSD(p.amount), '평균환율  ' + fmtRate(p.avg)];
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:14,weight:600},color:'#4E5968'} },
+        y:{
+          grid:{color:'#F2F4F6',drawBorder:false},
+          ticks:{
+            font:{size:12},
+            color:'#8B95A1',
+            callback:function(v){ return '$' + (v/1000).toFixed(0) + 'K'; }
+          }
+        }
+      }
+    }
+  });
+}
+
+// =========================================================
+// 30일 일별 환율 히스토리 (yfinance) — 페이지 로드 시 1회
+// Phase 0: yfinance LIVE / Phase 1: Supabase fx_rates_yfinance 시계열로 전환
+// =========================================================
+async function fetchHistory30D(){
+  try {
+    const res = await fetch('/api/fx-history?days=30', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.series) || data.series.length === 0) {
+      throw new Error('No history series in response');
+    }
+
+    // const 배열이지만 in-place 변형 가능
+    RATES_30D.length = 0;
+    RATES_DATES_30D.length = 0;
+
+    data.series.forEach(s => {
+      RATES_30D.push(s.close);
+      RATES_DATES_30D.push(s.label);
+    });
+
+    // 🔥 전 영업일 종가를 PREVIOUS_RATE로 capture (delta 계산 baseline)
+    // 한국수출입은행: 영업일 11AM 이후 오늘 데이터까지 포함 → 마지막이 오늘이면 [len-2] 사용
+    // Frankfurter: D-1까지만 → 마지막이 어제 → [len-1] 사용
+    if (data.series.length >= 1) {
+      const todayKST = new Date(Date.now() + 9*60*60*1000).toISOString().slice(0, 10);
+      const last = data.series[data.series.length - 1];
+      if (last.date === todayKST && data.series.length >= 2) {
+        // 오늘 데이터 포함 → 전 영업일 = [len-2]
+        const prev = data.series[data.series.length - 2];
+        PREVIOUS_RATE = prev.close;
+        PREVIOUS_CLOSE_LABEL = prev.label;
+      } else {
+        // 마지막이 이미 어제 (Frankfurter or 11AM 이전) → [len-1]
+        PREVIOUS_RATE = last.close;
+        PREVIOUS_CLOSE_LABEL = last.label;
+      }
+    }
+
+    // 마지막 라벨은 '오늘' 으로 통일
+    if (RATES_DATES_30D.length > 0) {
+      RATES_DATES_30D[RATES_DATES_30D.length - 1] = '오늘';
+    }
+
+    // 차트가 이미 그려져 있으면 즉시 갱신
+    if (m1ChartInstance) {
+      m1ChartInstance.data.labels = RATES_DATES_30D.slice();
+      m1ChartInstance.data.datasets[0].data = RATES_30D.slice();
+      m1ChartInstance.update('none');
+    }
+
+    // 라이브 환율 이미 있으면 1개월 delta 즉시 재계산
+    if (RATE_SOURCE !== 'mock') updateRateUI();
+
+    console.log('[fx-history] loaded ' + data.count + ' daily points from ' + data.source);
+    return true;
+  } catch (err) {
+    console.warn('[fx-history] fetch failed (keeping mock):', err.message || err);
+    return false;
+  }
+}
+
+async function fetchLiveRate(){
+  try {
+    const res = await fetch('/api/fx-rate', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.success || !data.primary) throw new Error('API returned no primary data');
+
+    const p = data.primary;
+    const newRate = (typeof p.tt_send === 'number' && p.tt_send > 0) ? p.tt_send : p.base_rate;
+    const newBase = (typeof p.base_rate === 'number' && p.base_rate > 0) ? p.base_rate : newRate;
+
+    // ⚠️ PREVIOUS_RATE를 매 분마다 갱신하지 않음 — fetchHistory30D가 설정한
+    //    전영업일 종가가 하루 종일 baseline 역할. delta = "vs 전영업일".
+    //    (이전 버그: 매 분 PREVIOUS_RATE=CURRENT_RATE로 덮어써서 delta가
+    //     "1분 전 vs 지금"이 되거나, 초기 mock 1478.30 그대로 사용됐음)
+    if (RATE_SOURCE === 'mock' && p.previous_close) {
+      PREVIOUS_RATE = p.previous_close;  // API가 prev_close 제공 시 fallback
+    }
+
+    CURRENT_RATE = newRate;
+    CURRENT_BASE_RATE = newBase;
+    LAST_FETCHED = new Date(p.fetched_at);
+    RATE_SOURCE = p.source;
+    CROSS_CHECK = data.cross_check;
+
+    updateRateUI();
+    updateChartsLive();           // 양쪽 차트 마지막 포인트 갱신
+    renderVendors(CURRENT_SORT);
+    return true;
+  } catch (err) {
+    console.warn('[fx-rate] fetch failed:', err.message || err);
+    return false;
+  }
+}
+
+function updateRateUI(){
+  const fmt = n => n.toFixed(2);
+  const delta = CURRENT_BASE_RATE - PREVIOUS_RATE;
+  const deltaPct = (delta / PREVIOUS_RATE) * 100;
+
+  let deltaCls, deltaSym;
+  if (delta > 0.05) { deltaCls = 'up'; deltaSym = '▲ +'; }
+  else if (delta < -0.05) { deltaCls = 'down'; deltaSym = '▼ −'; }
+  else { deltaCls = 'flat'; deltaSym = '· '; }
+
+  const heroRate = document.getElementById('hero-rate-tt');
+  if (heroRate) heroRate.textContent = fmt(CURRENT_RATE);
+
+  const heroDelta = document.getElementById('hero-rate-delta');
+  if (heroDelta) {
+    heroDelta.textContent = deltaSym + Math.abs(delta).toFixed(2);
+    heroDelta.classList.remove('delta-up','delta-down','delta-flat');
+    heroDelta.classList.add('delta-' + deltaCls);
+  }
+
+  const sideRate = document.getElementById('hero-side-rate');
+  if (sideRate) sideRate.textContent = fmt(CURRENT_BASE_RATE);
+
+  const sideDelta = document.getElementById('hero-side-delta');
+  if (sideDelta) {
+    sideDelta.textContent = deltaSym + Math.abs(delta).toFixed(2) + ' (' + (delta >= 0 ? '+' : '') + deltaPct.toFixed(2) + '%)';
+    sideDelta.classList.remove('up','down','flat');
+    sideDelta.classList.add(deltaCls);
+  }
+
+  // Baseline caption: "전 영업일 종가 1,491.73 (5/14) 대비"
+  const baseline = document.getElementById('hero-side-baseline');
+  if (baseline && PREVIOUS_RATE) {
+    const label = PREVIOUS_CLOSE_LABEL ? ' (' + PREVIOUS_CLOSE_LABEL + ')' : '';
+    baseline.textContent = '전 영업일 종가 ' + PREVIOUS_RATE.toFixed(2) + label + ' 대비';
+  }
+
+  const m1Rate = document.getElementById('m1-rate-val');
+  if (m1Rate) m1Rate.textContent = fmt(CURRENT_BASE_RATE);
+
+  const m1Delta = document.getElementById('m1-rate-delta');
+  if (m1Delta) {
+    // 1개월 변동: 30일 전 시작 시점 대비
+    const monthDelta = CURRENT_BASE_RATE - RATES_30D[0];
+    let mCls, mSym;
+    if (monthDelta > 0.05) { mCls = 'up'; mSym = '▲ +'; }
+    else if (monthDelta < -0.05) { mCls = 'down'; mSym = '▼ −'; }
+    else { mCls = 'flat'; mSym = '· '; }
+    m1Delta.textContent = mSym + Math.abs(monthDelta).toFixed(2) + '원 (1개월)';
+    m1Delta.classList.remove('delta-up','delta-down','delta-flat');
+    m1Delta.classList.add('delta-' + mCls);
+  }
+
+  const gapDelta = document.getElementById('hero-gap-delta');
+  if (gapDelta) {
+    // 5/18 만기 도래 vendors (GIGA/OCEAN/Changjia)의 원가 평균 = 1,472.60
+    const gap = CURRENT_RATE - 1472.60;
+    const gapSym = gap > 0 ? '갭 +' : (gap < 0 ? '갭 −' : '갭 ·');
+    gapDelta.textContent = gapSym + Math.abs(gap).toFixed(2);
+    gapDelta.classList.remove('delta-up','delta-down','delta-flat');
+    gapDelta.classList.add(gap > 0 ? 'delta-up' : (gap < 0 ? 'delta-down' : 'delta-flat'));
+  }
+
+  const heroKrw = document.getElementById('hero-krw');
+  if (heroKrw) {
+    // Hero amount = 오늘 5/18 만기 도래 $2,184,080
+    const krw = 2184080 * CURRENT_RATE;
+    const eok = Math.floor(krw / 100000000);
+    const man = Math.round((krw % 100000000) / 10000);
+    heroKrw.textContent = eok + '억 ' + man.toLocaleString() + '만';
+  }
+
+  const srcLabel = document.getElementById('hero-rate-source');
+  if (srcLabel) {
+    if (RATE_SOURCE === 'naver') srcLabel.textContent = '네이버 송금보내실때';
+    else if (RATE_SOURCE === 'yfinance') srcLabel.textContent = 'yfinance (fallback)';
+    else srcLabel.textContent = 'Mock 데이터';
+  }
+
+  const pairSrc = document.getElementById('hero-side-pair-source');
+  if (pairSrc) pairSrc.textContent = RATE_SOURCE === 'naver' ? '(매매기준율)' : '(yfinance)';
+
+  const crossBadge = document.getElementById('cross-check-badge');
+  if (crossBadge && CROSS_CHECK) {
+    if (CROSS_CHECK.consistent) {
+      crossBadge.textContent = '✓ Cross-check 일치';
+      crossBadge.style.color = 'var(--good)';
+    } else {
+      crossBadge.textContent = '⚠ 갭 ' + CROSS_CHECK.gap_krw + '원';
+      crossBadge.style.color = 'var(--warn)';
+    }
+  }
+
+  updateStaleness();
+
+  const lastTxt = document.getElementById('last-updated-text');
+  if (lastTxt && LAST_FETCHED) {
+    const hh = String(LAST_FETCHED.getHours()).padStart(2,'0');
+    const mm = String(LAST_FETCHED.getMinutes()).padStart(2,'0');
+    const ss = String(LAST_FETCHED.getSeconds()).padStart(2,'0');
+    lastTxt.textContent = hh + ':' + mm + ':' + ss + ' (' + (RATE_SOURCE === 'naver' ? '네이버' : RATE_SOURCE) + ')';
+  }
+}
+
+function updateStaleness(){
+  const dot = document.getElementById('hero-rate-staleness');
+  if (!dot || !LAST_FETCHED) return;
+  const ageSec = (Date.now() - LAST_FETCHED.getTime()) / 1000;
+  dot.classList.remove('staleness-fresh','staleness-stale','staleness-old');
+  if (ageSec < 90) dot.classList.add('staleness-fresh');
+  else if (ageSec < 300) dot.classList.add('staleness-stale');
+  else dot.classList.add('staleness-old');
+}
+
+function setupSortChips(){
+  document.querySelectorAll('[data-sort]').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      document.querySelectorAll('[data-sort]').forEach(function(c){ c.classList.remove('active'); });
+      chip.classList.add('active');
+      renderVendors(chip.dataset.sort);
+    });
+  });
+}
+
+function animateCoverageBar(){
+  setTimeout(function(){
+    document.getElementById('coverageBar').style.width = '67.8%';
+  }, 400);
+}
+
+function animateLiveTime(){
+  const el = document.getElementById('live-status');
+  function tick(){
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    el.textContent = '실시간 ' + hh + ':' + mm;
+  }
+  tick();
+  setInterval(tick, 30000);
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  renderVendors('gap');
+  renderTimeline();
+  renderHeroChart();
+  renderM1Chart();
+  renderPositionChart();
+  setupSortChips();
+  animateCoverageBar();
+  animateLiveTime();
+
+  // 30일 yfinance 일별 히스토리 — 페이지 로드 시 1회 (그 후 정적)
+  // 라이브 환율 폴링과 병렬 실행: history 먼저 시작, rate가 도착하면 1개월 delta 재계산
+  fetchHistory30D();
+
+  // 라이브 환율 (네이버 송금보내실때) — 1분 polling
+  fetchLiveRate();
+  setInterval(fetchLiveRate, 60000);
+  setInterval(updateStaleness, 15000);
+});
+</script>
+
+</body>
+</html>
