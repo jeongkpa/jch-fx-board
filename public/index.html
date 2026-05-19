@@ -121,6 +121,29 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 .metric-bar-track{height:8px;background:var(--bg-subtle);border-radius:var(--r-pill);overflow:hidden;margin-top:var(--s-3);}
 .metric-bar-fill{height:100%;background:var(--brand);border-radius:var(--r-pill);transition:width 1.2s var(--ease-out);}
 
+/* HERMES OUTLOOK */
+.outlook-card{background:var(--bg-card);border-radius:var(--r-2xl);padding:var(--s-7);margin-bottom:var(--s-6);box-shadow:var(--shadow-sm);border:1px solid var(--border-soft);animation:fadeInUp .7s .22s var(--ease) both;}
+.outlook-card.waiting{background:linear-gradient(180deg,#fff 0%,#F8F9FA 100%);}
+.outlook-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-4);margin-bottom:var(--s-5);flex-wrap:wrap;}
+.outlook-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text-primary);}
+.outlook-sub{font-size:15px;color:var(--text-tertiary);font-weight:600;margin-top:4px;}
+.outlook-action{display:inline-flex;align-items:center;border-radius:var(--r-pill);padding:8px 16px;background:var(--brand-50);color:var(--brand-strong);font-size:15px;font-weight:800;}
+.outlook-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-4);margin-bottom:var(--s-5);}
+.outlook-item{border-radius:var(--r-xl);padding:var(--s-5);background:var(--bg-subtle);border:1px solid var(--border-soft);}
+.outlook-item.risk{background:#FFF5F5;border-color:#FECACA;}
+.outlook-item.down{background:var(--down-50);border-color:var(--down-100);}
+.outlook-item.neutral{background:#F8FAFC;border-color:#CBD5E1;}
+.outlook-item.favorable{background:var(--good-50);border-color:#BBF7D0;}
+.outlook-horizon{font-size:14px;font-weight:800;color:var(--text-tertiary);letter-spacing:.2px;margin-bottom:8px;}
+.outlook-direction{font-size:24px;font-weight:900;letter-spacing:-.6px;color:var(--text-primary);line-height:1.2;}
+.outlook-item.risk .outlook-direction{color:#B91C1C;}
+.outlook-item.down .outlook-direction{color:var(--down-strong);}
+.outlook-item.favorable .outlook-direction{color:#15803D;}
+.outlook-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-3);padding-top:var(--s-4);border-top:1px solid var(--border-soft);}
+.outlook-level{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.outlook-level-label{font-size:13px;color:var(--text-tertiary);font-weight:800;letter-spacing:.2px;}
+.outlook-level-value{font-size:16px;color:var(--text-primary);font-weight:800;}
+
 /* SECTION */
 .section{background:var(--bg-card);border-radius:var(--r-2xl);padding:var(--s-8);margin-bottom:var(--s-6);box-shadow:var(--shadow-sm);animation:fadeInUp .7s .25s var(--ease) both;}
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s-6);flex-wrap:wrap;gap:var(--s-3);}
@@ -204,6 +227,10 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 .hermes-report-text strong{color:var(--text-primary);font-weight:800;}
 .hermes-report-text a{color:var(--brand-strong);text-decoration:underline;text-underline-offset:2px;word-break:break-all;}
 .hermes-report-text hr{border:0;border-top:1px solid var(--border-soft);margin:var(--s-5) 0;}
+.hermes-report-text table{width:100%;border-collapse:collapse;margin:0 0 var(--s-5);font-size:16px;overflow:hidden;border-radius:var(--r-md);}
+.hermes-report-text th,.hermes-report-text td{border-bottom:1px solid var(--border-soft);padding:10px 12px;text-align:left;vertical-align:top;}
+.hermes-report-text th{background:var(--bg-subtle);color:var(--text-primary);font-weight:800;}
+.hermes-report-text td{color:var(--text-secondary);font-weight:600;}
 .hermes-signal{display:flex;align-items:center;gap:var(--s-4);border-radius:var(--r-xl);padding:var(--s-5);margin:0 0 var(--s-5);border:1px solid var(--border-soft);background:var(--bg-subtle);}
 .hermes-signal::before{content:'';width:14px;height:54px;border-radius:var(--r-pill);background:var(--text-tertiary);flex:0 0 auto;}
 .hermes-signal-label{font-size:13px;font-weight:800;color:var(--text-tertiary);letter-spacing:.3px;text-transform:uppercase;margin-bottom:4px;}
@@ -217,6 +244,10 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 .hermes-signal.favorable{background:#F0FDF4;border-color:#BBF7D0;}
 .hermes-signal.favorable::before{background:#16A34A;}
 .hermes-signal.favorable .hermes-signal-main{color:#15803D;}
+.hermes-outlook-inline{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-3);margin:0 0 var(--s-5);}
+.hermes-outlook-inline-item{border:1px solid var(--border-soft);border-radius:var(--r-lg);padding:var(--s-4);background:var(--bg-subtle);}
+.hermes-outlook-inline-label{font-size:13px;font-weight:800;color:var(--text-tertiary);margin-bottom:6px;}
+.hermes-outlook-inline-value{font-size:18px;font-weight:900;color:var(--text-primary);}
 .hermes-report-empty{color:var(--text-tertiary);font-size:17px;line-height:1.7;}
 
 /* FOOTER */
@@ -231,6 +262,7 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 @media (max-width:1024px){
   .hero-grid{grid-template-columns:1fr;gap:var(--s-8);}
   .metrics-row{grid-template-columns:repeat(2,1fr);}
+  .outlook-grid,.outlook-levels{grid-template-columns:1fr;}
   .bottom-row{grid-template-columns:1fr;}
   .hermes-report-grid{grid-template-columns:1fr;}
 }
@@ -255,6 +287,9 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
   .hero-side-rate{font-size:34px;}
   .metrics-row{grid-template-columns:1fr;}
   .metric-val{font-size:30px;}
+  .outlook-card{padding:var(--s-5);}
+  .outlook-direction{font-size:21px;}
+  .hermes-outlook-inline{grid-template-columns:1fr;}
   .section{padding:var(--s-5);border-radius:var(--r-xl);}
   .section-title{font-size:19px;}
   .vt{font-size:15px;}
@@ -412,6 +447,44 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
       </div>
     </div>
 
+  </section>
+
+  <section class="outlook-card waiting" id="hermes-outlook-card">
+    <div class="outlook-head">
+      <div>
+        <div class="outlook-title">단기 방향성</div>
+        <div class="outlook-sub" id="hermes-outlook-sub">Hermes 보고 수신 후 3일 · 7일 · 14일 방향성을 표시합니다.</div>
+      </div>
+      <div class="outlook-action" id="hermes-outlook-action">수신 대기</div>
+    </div>
+    <div class="outlook-grid">
+      <div class="outlook-item neutral" id="outlook-3d-card">
+        <div class="outlook-horizon">3일 방향</div>
+        <div class="outlook-direction" id="outlook-3d">—</div>
+      </div>
+      <div class="outlook-item neutral" id="outlook-7d-card">
+        <div class="outlook-horizon">7일 방향</div>
+        <div class="outlook-direction" id="outlook-7d">—</div>
+      </div>
+      <div class="outlook-item neutral" id="outlook-14d-card">
+        <div class="outlook-horizon">14일 방향</div>
+        <div class="outlook-direction" id="outlook-14d">—</div>
+      </div>
+    </div>
+    <div class="outlook-levels">
+      <div class="outlook-level">
+        <div class="outlook-level-label">상단 경계</div>
+        <div class="outlook-level-value" id="outlook-upper">—</div>
+      </div>
+      <div class="outlook-level">
+        <div class="outlook-level-label">중립 기준</div>
+        <div class="outlook-level-value" id="outlook-neutral">—</div>
+      </div>
+      <div class="outlook-level">
+        <div class="outlook-level-label">우호 구간</div>
+        <div class="outlook-level-value" id="outlook-favorable">—</div>
+      </div>
+    </div>
   </section>
 
   <section class="section hermes-report-card">
@@ -1119,11 +1192,78 @@ function renderInlineMarkdown(value){
   return html;
 }
 
+function parseHermesOutlook(markdown){
+  const text = String(markdown || '');
+  const marker = text.match(/^\[\[outlook\|(.+)\]\]$/m);
+  if (!marker) return null;
+  const result = {};
+  marker[1].split('|').forEach(function(part){
+    const idx = part.indexOf('=');
+    if (idx < 1) return;
+    const key = part.slice(0, idx).trim();
+    const value = part.slice(idx + 1).trim();
+    if (key && value) result[key] = value;
+  });
+  return Object.keys(result).length ? result : null;
+}
+
+function outlookTone(value){
+  const text = String(value || '');
+  if (/하락|매수 우호|우호/.test(text)) return 'favorable';
+  if (/상승|부담|상단|급등/.test(text)) return 'risk';
+  if (/내림|약세/.test(text)) return 'down';
+  return 'neutral';
+}
+
+function setOutlookItem(id, value){
+  const text = document.getElementById(id);
+  const card = document.getElementById(id + '-card');
+  if (!text || !card) return;
+  text.textContent = value || '—';
+  card.classList.remove('risk','down','neutral','favorable');
+  card.classList.add(value ? outlookTone(value) : 'neutral');
+}
+
+function renderOutlookPanel(report){
+  const card = document.getElementById('hermes-outlook-card');
+  const sub = document.getElementById('hermes-outlook-sub');
+  const action = document.getElementById('hermes-outlook-action');
+  const upper = document.getElementById('outlook-upper');
+  const neutral = document.getElementById('outlook-neutral');
+  const favorable = document.getElementById('outlook-favorable');
+  if (!card || !sub || !action || !upper || !neutral || !favorable) return;
+
+  const outlook = report ? parseHermesOutlook(report.markdown || report.summary || '') : null;
+  if (!outlook) {
+    card.classList.add('waiting');
+    sub.textContent = 'Hermes 보고 수신 후 3일 · 7일 · 14일 방향성을 표시합니다.';
+    action.textContent = '수신 대기';
+    setOutlookItem('outlook-3d', '—');
+    setOutlookItem('outlook-7d', '—');
+    setOutlookItem('outlook-14d', '—');
+    upper.textContent = '—';
+    neutral.textContent = '—';
+    favorable.textContent = '—';
+    return;
+  }
+
+  card.classList.remove('waiting');
+  sub.textContent = fmtReportTime(report.created_at || report.received_at) + ' 기준 · 신뢰도 표시는 제외';
+  action.textContent = outlook['권장 액션'] || outlook.action || '권장 액션 확인';
+  setOutlookItem('outlook-3d', outlook['3일 방향'] || outlook['3일'] || outlook.d3);
+  setOutlookItem('outlook-7d', outlook['7일 방향'] || outlook['7일'] || outlook.d7);
+  setOutlookItem('outlook-14d', outlook['14일 방향'] || outlook['14일'] || outlook.d14);
+  upper.textContent = outlook['상단 경계'] || outlook.upper || '—';
+  neutral.textContent = outlook['중립 기준'] || outlook.neutral || '—';
+  favorable.textContent = outlook['우호 구간'] || outlook.favorable || '—';
+}
+
 function renderMarkdown(markdown){
   const lines = String(markdown || '').replace(/\r\n/g, '\n').split('\n');
   const blocks = [];
   let paragraph = [];
   let list = null;
+  let table = null;
 
   function flushParagraph(){
     if (!paragraph.length) return;
@@ -1140,19 +1280,59 @@ function renderMarkdown(markdown){
     list = null;
   }
 
-  lines.forEach(function(rawLine){
+  function parseTableCells(line){
+    return line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(function(cell){ return cell.trim(); });
+  }
+
+  function flushTable(){
+    if (!table) return;
+    const head = '<thead><tr>' + table.headers.map(function(cell){ return '<th>' + renderInlineMarkdown(cell) + '</th>'; }).join('') + '</tr></thead>';
+    const body = '<tbody>' + table.rows.map(function(row){
+      return '<tr>' + row.map(function(cell){ return '<td>' + renderInlineMarkdown(cell) + '</td>'; }).join('') + '</tr>';
+    }).join('') + '</tbody>';
+    blocks.push('<table>' + head + body + '</table>');
+    table = null;
+  }
+
+  lines.forEach(function(rawLine, idx){
     const line = rawLine.trimEnd();
     const trimmed = line.trim();
     if (!trimmed) {
       flushParagraph();
       flushList();
+      flushTable();
       return;
     }
+    const nextTrimmed = (lines[idx + 1] || '').trim();
+    if (/^\|.+\|$/.test(trimmed) && /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(nextTrimmed)) {
+      flushParagraph();
+      flushList();
+      flushTable();
+      table = { headers: parseTableCells(trimmed), rows: [] };
+      return;
+    }
+    if (/^\|.+\|$/.test(trimmed) && table) {
+      if (/^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(trimmed)) return;
+      table.rows.push(parseTableCells(trimmed));
+      return;
+    }
+    flushTable();
     const signal = trimmed.match(/^\[\[signal:(favorable|neutral|risk)\|([^|\]]+)\|([^\]]+)\]\]$/);
     if (signal) {
       flushParagraph();
       flushList();
       blocks.push('<div class="hermes-signal ' + signal[1] + '"><div><div class="hermes-signal-label">시장 판단</div><div class="hermes-signal-main">' + renderInlineMarkdown(signal[2]) + '</div><div class="hermes-signal-sub">' + renderInlineMarkdown(signal[3]) + '</div></div></div>');
+      return;
+    }
+    const outlook = trimmed.match(/^\[\[outlook\|(.+)\]\]$/);
+    if (outlook) {
+      flushParagraph();
+      flushList();
+      const parsed = parseHermesOutlook(trimmed) || {};
+      const d3 = parsed['3일 방향'] || parsed['3일'] || parsed.d3 || '—';
+      const d7 = parsed['7일 방향'] || parsed['7일'] || parsed.d7 || '—';
+      const d14 = parsed['14일 방향'] || parsed['14일'] || parsed.d14 || '—';
+      blocks.push('<div class="hermes-outlook-inline"><div class="hermes-outlook-inline-item"><div class="hermes-outlook-inline-label">3일 방향</div><div class="hermes-outlook-inline-value">' + renderInlineMarkdown(d3) + '</div></div><div class="hermes-outlook-inline-item"><div class="hermes-outlook-inline-label">7일 방향</div><div class="hermes-outlook-inline-value">' + renderInlineMarkdown(d7) + '</div></div><div class="hermes-outlook-inline-item"><div class="hermes-outlook-inline-label">14일 방향</div><div class="hermes-outlook-inline-value">' + renderInlineMarkdown(d14) + '</div></div></div>');
       return;
     }
     const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
@@ -1188,6 +1368,7 @@ function renderMarkdown(markdown){
   });
   flushParagraph();
   flushList();
+  flushTable();
   return blocks.join('');
 }
 
@@ -1209,6 +1390,7 @@ function renderHermesReport(report){
     title.textContent = '아직 수신된 Hermes 보고서가 없습니다';
     body.className = 'hermes-report-empty';
     body.textContent = '오전/오후 Hermes 보고가 전송되면 이 영역에 Discord와 동일한 본문이 표시됩니다.';
+    renderOutlookPanel(null);
     return;
   }
 
@@ -1220,6 +1402,7 @@ function renderHermesReport(report){
   title.textContent = report.title || 'Hermes 보고';
   body.className = 'hermes-report-text';
   body.innerHTML = renderMarkdown(report.markdown || report.summary || '본문 없음');
+  renderOutlookPanel(report);
 }
 
 async function fetchHermesReport(){
