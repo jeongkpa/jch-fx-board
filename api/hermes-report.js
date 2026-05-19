@@ -5,6 +5,8 @@
 const REPORT_KEY = 'jch:fx-board:hermes-reports';
 const MAX_REPORTS = 20;
 const MAX_MARKDOWN_CHARS = 12000;
+const MAX_DETAILS_CHARS = 12000;
+const MAX_EVIDENCE_TAGS = 8;
 
 function nowIso(){ return new Date().toISOString(); }
 
@@ -27,8 +29,53 @@ export function sanitizeMarkdown(markdown){
   return body;
 }
 
+export function sanitizeDetailsMarkdown(detailsMarkdown){
+  const body = safeString(detailsMarkdown);
+  if (!body) return '';
+  if (body.length > MAX_DETAILS_CHARS) {
+    throw new Error(`details_markdown too long: max ${MAX_DETAILS_CHARS} chars`);
+  }
+  return body;
+}
+
+export function sanitizeEvidenceTags(tags){
+  if (tags === null || tags === undefined || tags === '') return [];
+  const rawTags = Array.isArray(tags) ? tags : String(tags).split('|');
+  return rawTags
+    .map((tag) => clampString(tag, 40, ''))
+    .filter(Boolean)
+    .slice(0, MAX_EVIDENCE_TAGS);
+}
+
+export function sanitizeSignalBasis(input){
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+  const allowed = [
+    ['technical', '기술적 흐름'],
+    ['dollar_rates', '달러·금리'],
+    ['risk_sentiment', '위험심리'],
+    ['event', '이벤트']
+  ];
+  const out = {};
+  allowed.forEach(([key, label]) => {
+    const item = input[key];
+    if (item === null || item === undefined) return;
+    if (typeof item === 'string') {
+      const direction = clampString(item, 40, '');
+      if (direction) out[key] = { label, direction, note: '' };
+      return;
+    }
+    if (typeof item === 'object' && !Array.isArray(item)) {
+      const direction = clampString(item.direction ?? item.value ?? item.label, 40, '');
+      const note = clampString(item.note ?? item.reason ?? '', 160, '');
+      if (direction || note) out[key] = { label, direction, note };
+    }
+  });
+  return Object.keys(out).length ? out : null;
+}
+
 export function normalizeReport(input = {}){
   const markdown = sanitizeMarkdown(input.markdown ?? input.body ?? input.message);
+  const detailsMarkdown = sanitizeDetailsMarkdown(input.details_markdown ?? input.detailsMarkdown ?? input.details);
   const createdAt = safeString(input.created_at || input.createdAt || nowIso());
   const parsedDate = new Date(createdAt);
   const iso = Number.isNaN(parsedDate.getTime()) ? nowIso() : parsedDate.toISOString();
@@ -39,6 +86,9 @@ export function normalizeReport(input = {}){
     type: clampString(input.type, 40, 'hermes_report') || 'hermes_report',
     title: clampString(input.title, 160, 'Hermes 보고') || 'Hermes 보고',
     markdown,
+    details_markdown: detailsMarkdown,
+    evidence_tags: sanitizeEvidenceTags(input.evidence_tags ?? input.evidenceTags),
+    signal_basis: sanitizeSignalBasis(input.signal_basis ?? input.signalBasis),
     summary: clampString(input.summary, 500, ''),
     rate: Number.isFinite(rate) ? rate : null,
     source: clampString(input.source, 80, ''),

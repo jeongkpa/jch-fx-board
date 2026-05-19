@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler, { normalizeReport, sanitizeMarkdown } from '../api/hermes-report.js';
+import handler, { normalizeReport, sanitizeMarkdown, sanitizeEvidenceTags, sanitizeSignalBasis } from '../api/hermes-report.js';
 
 function createRes(){
   const headers = {};
@@ -20,6 +20,14 @@ test('normalizeReport keeps the Discord markdown body and fills metadata', () =>
     type: 'noon_report',
     title: 'JCH FX 오후 12:00 보고',
     markdown: '차상무님 보고 본문',
+    details_markdown: '## 자세한 근거\n- 대시보드 전용 근거',
+    evidence_tags: ['USD/KRW 상단 유지', '달러 강세'],
+    signal_basis: {
+      technical: { direction: '상승 압력', note: '5일선 상회' },
+      dollar_rates: '상승 부담',
+      risk_sentiment: { direction: '중립', note: 'KOSPI 혼조' },
+      event: { direction: '변동성 유의' }
+    },
     rate: 1506.5,
     source: 'naver'
   });
@@ -27,10 +35,29 @@ test('normalizeReport keeps the Discord markdown body and fills metadata', () =>
   assert.equal(report.type, 'noon_report');
   assert.equal(report.title, 'JCH FX 오후 12:00 보고');
   assert.equal(report.markdown, '차상무님 보고 본문');
+  assert.equal(report.details_markdown, '## 자세한 근거\n- 대시보드 전용 근거');
+  assert.deepEqual(report.evidence_tags, ['USD/KRW 상단 유지', '달러 강세']);
+  assert.equal(report.signal_basis.technical.direction, '상승 압력');
+  assert.equal(report.signal_basis.dollar_rates.direction, '상승 부담');
   assert.equal(report.rate, 1506.5);
   assert.equal(report.source, 'naver');
   assert.match(report.id, /^hr_/);
   assert.match(report.created_at, /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test('dashboard-only evidence helpers clamp detail metadata without scores', () => {
+  assert.deepEqual(sanitizeEvidenceTags(['  A  ', '', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
+  assert.deepEqual(sanitizeEvidenceTags('USD/KRW 상단 유지|달러 강세'), ['USD/KRW 상단 유지', '달러 강세']);
+
+  const basis = sanitizeSignalBasis({
+    technical: { direction: '상승 압력', note: '점수 숫자는 저장하지 않음', score: 99 },
+    dollar_rates: { value: '상승 부담' },
+    unknown: { direction: '무시' }
+  });
+  assert.deepEqual(Object.keys(basis), ['technical', 'dollar_rates']);
+  assert.equal(basis.technical.label, '기술적 흐름');
+  assert.equal(basis.technical.direction, '상승 압력');
+  assert.equal(basis.technical.score, undefined);
 });
 
 test('sanitizeMarkdown rejects empty or oversized report bodies', () => {

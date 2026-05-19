@@ -370,6 +370,20 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 .hermes-report-text th,.hermes-report-text td{border-bottom:1px solid var(--border-soft);padding:10px 12px;text-align:left;vertical-align:top;}
 .hermes-report-text th{background:var(--bg-subtle);color:var(--text-primary);font-weight:800;}
 .hermes-report-text td{color:var(--text-secondary);font-weight:600;}
+.hermes-evidence{display:flex;flex-wrap:wrap;gap:var(--s-2);margin:0 0 var(--s-5);}
+.hermes-evidence-chip{display:inline-flex;align-items:center;border-radius:var(--r-pill);padding:7px 13px;background:var(--brand-50);color:var(--brand-strong);font-size:14px;font-weight:800;letter-spacing:-.1px;}
+.hermes-detail{margin-top:var(--s-5);border:1px solid var(--border-soft);border-radius:var(--r-xl);background:linear-gradient(180deg,#fff 0%,#F8F9FA 100%);overflow:hidden;}
+.hermes-detail[hidden]{display:none;}
+.hermes-detail summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:var(--s-4) var(--s-5);font-size:17px;font-weight:900;color:var(--text-primary);cursor:pointer;}
+.hermes-detail summary::-webkit-details-marker{display:none;}
+.hermes-detail summary::after{content:'펼치기';font-size:13px;font-weight:800;color:var(--brand-strong);background:var(--brand-50);border-radius:var(--r-pill);padding:5px 10px;}
+.hermes-detail[open] summary::after{content:'닫기';}
+.hermes-detail-body{border-top:1px solid var(--border-soft);padding:var(--s-5);}
+.hermes-basis-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-3);margin:0 0 var(--s-5);}
+.hermes-basis-item{background:var(--bg-card);border:1px solid var(--border-soft);border-radius:var(--r-lg);padding:var(--s-4);}
+.hermes-basis-label{font-size:13px;font-weight:900;color:var(--text-tertiary);margin-bottom:6px;}
+.hermes-basis-direction{font-size:17px;font-weight:900;color:var(--text-primary);line-height:1.25;}
+.hermes-basis-note{font-size:14px;color:var(--text-secondary);font-weight:600;margin-top:6px;line-height:1.45;}
 .hermes-signal{display:flex;align-items:center;gap:var(--s-4);border-radius:var(--r-xl);padding:var(--s-5);margin:0 0 var(--s-5);border:1px solid var(--border-soft);background:var(--bg-subtle);}
 .hermes-signal::before{content:'';width:14px;height:54px;border-radius:var(--r-pill);background:var(--text-tertiary);flex:0 0 auto;}
 .hermes-signal-label{font-size:13px;font-weight:800;color:var(--text-tertiary);letter-spacing:.3px;text-transform:uppercase;margin-bottom:4px;}
@@ -435,6 +449,7 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
   .outlook-card{padding:var(--s-5);}
   .outlook-direction{font-size:21px;}
   .hermes-outlook-inline{grid-template-columns:1fr;}
+  .hermes-basis-grid{grid-template-columns:1fr;}
   .section{padding:var(--s-5);border-radius:var(--r-xl);}
   .section-title{font-size:19px;}
   .vt{font-size:15px;}
@@ -636,7 +651,7 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
     <div class="section-head">
       <h2 class="section-title">
         Hermes 최근 보고
-        <span class="badge">Discord 동일 본문</span>
+        <span class="badge">Discord 본문 · 대시보드 상세근거</span>
       </h2>
       <button class="chip" id="hermes-report-refresh" type="button">새로고침</button>
     </div>
@@ -652,9 +667,14 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
       </aside>
       <article class="hermes-report-body">
         <div class="hermes-report-title" id="hermes-report-title">아직 수신된 Hermes 보고서가 없습니다</div>
+        <div id="hermes-report-evidence" class="hermes-evidence" hidden></div>
         <div class="hermes-report-empty" id="hermes-report-body">
-          오전/오후 Hermes 보고가 전송되면 이 영역에 Discord와 동일한 본문이 표시됩니다.
+          오전/오후 Hermes 보고가 전송되면 이 영역에 Discord 본문이 표시됩니다.
         </div>
+        <details class="hermes-detail" id="hermes-report-details" hidden>
+          <summary>자세한 근거 보기</summary>
+          <div class="hermes-detail-body" id="hermes-report-details-body"></div>
+        </details>
       </article>
     </div>
   </section>
@@ -1517,6 +1537,33 @@ function renderMarkdown(markdown){
   return blocks.join('');
 }
 
+function renderEvidenceTags(tags){
+  if (!Array.isArray(tags) || !tags.length) return '';
+  return tags.map(function(tag){
+    return '<span class="hermes-evidence-chip">' + renderInlineMarkdown(tag) + '</span>';
+  }).join('');
+}
+
+function renderSignalBasis(basis){
+  if (!basis || typeof basis !== 'object') return '';
+  const order = ['technical','dollar_rates','risk_sentiment','event'];
+  const html = order.map(function(key){
+    const item = basis[key];
+    if (!item) return '';
+    const label = item.label || ({ technical:'기술적 흐름', dollar_rates:'달러·금리', risk_sentiment:'위험심리', event:'이벤트' })[key] || key;
+    const direction = item.direction || '—';
+    const note = item.note ? '<div class="hermes-basis-note">' + renderInlineMarkdown(item.note) + '</div>' : '';
+    return '<div class="hermes-basis-item"><div class="hermes-basis-label">' + renderInlineMarkdown(label) + '</div><div class="hermes-basis-direction">' + renderInlineMarkdown(direction) + '</div>' + note + '</div>';
+  }).filter(Boolean).join('');
+  return html ? '<div class="hermes-basis-grid">' + html + '</div>' : '';
+}
+
+function renderDetailsPanel(report){
+  const basisHtml = renderSignalBasis(report.signal_basis);
+  const detailsHtml = report.details_markdown ? renderMarkdown(report.details_markdown) : '';
+  return basisHtml + detailsHtml;
+}
+
 function renderHermesReport(report){
   const status = document.getElementById('hermes-report-status');
   const time = document.getElementById('hermes-report-time');
@@ -1524,7 +1571,10 @@ function renderHermesReport(report){
   const source = document.getElementById('hermes-report-source');
   const title = document.getElementById('hermes-report-title');
   const body = document.getElementById('hermes-report-body');
-  if (!status || !time || !rate || !source || !title || !body) return;
+  const evidence = document.getElementById('hermes-report-evidence');
+  const details = document.getElementById('hermes-report-details');
+  const detailsBody = document.getElementById('hermes-report-details-body');
+  if (!status || !time || !rate || !source || !title || !body || !evidence || !details || !detailsBody) return;
 
   if (!report) {
     status.textContent = '수신 대기';
@@ -1533,8 +1583,13 @@ function renderHermesReport(report){
     rate.textContent = '—';
     source.textContent = '—';
     title.textContent = '아직 수신된 Hermes 보고서가 없습니다';
+    evidence.hidden = true;
+    evidence.innerHTML = '';
     body.className = 'hermes-report-empty';
-    body.textContent = '오전/오후 Hermes 보고가 전송되면 이 영역에 Discord와 동일한 본문이 표시됩니다.';
+    body.textContent = '오전/오후 Hermes 보고가 전송되면 이 영역에 Discord 본문이 표시됩니다.';
+    details.hidden = true;
+    details.open = false;
+    detailsBody.innerHTML = '';
     renderOutlookPanel(null);
     return;
   }
@@ -1545,8 +1600,15 @@ function renderHermesReport(report){
   rate.textContent = typeof report.rate === 'number' ? report.rate.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + '원' : '—';
   source.textContent = report.source || 'Hermes';
   title.textContent = report.title || 'Hermes 보고';
+  const evidenceHtml = renderEvidenceTags(report.evidence_tags);
+  evidence.hidden = !evidenceHtml;
+  evidence.innerHTML = evidenceHtml;
   body.className = 'hermes-report-text';
   body.innerHTML = renderMarkdown(report.markdown || report.summary || '본문 없음');
+  const detailHtml = renderDetailsPanel(report);
+  details.hidden = !detailHtml;
+  details.open = false;
+  detailsBody.innerHTML = detailHtml;
   renderOutlookPanel(report);
 }
 
