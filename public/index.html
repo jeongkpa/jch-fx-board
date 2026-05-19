@@ -1248,7 +1248,7 @@ function renderOutlookPanel(report){
   }
 
   card.classList.remove('waiting');
-  sub.textContent = fmtReportTime(report.created_at || report.received_at) + ' 기준 · 신뢰도 표시는 제외';
+  sub.textContent = fmtReportTime(report.created_at || report.received_at) + ' 기준 · 3일 · 7일 · 14일 방향성';
   action.textContent = outlook['권장 액션'] || outlook.action || '권장 액션 확인';
   setOutlookItem('outlook-3d', outlook['3일 방향'] || outlook['3일'] || outlook.d3);
   setOutlookItem('outlook-7d', outlook['7일 방향'] || outlook['7일'] || outlook.d7);
