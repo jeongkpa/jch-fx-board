@@ -131,10 +131,25 @@
 |------|-----------|
 | `recommend()` 함수 | 차상무님 § 3.5 verbatim 알고리즘. 잘못 수정 시 매입 추천 오류 |
 | `KOREAEXIM_API_KEY` | API key 노출. 코드 변경 시 env var로 이관 고려 |
-| `RATES_30D` mutation | Frankfurter/한국수출입은행 데이터로 페이지 로드 시 채워짐. 임의 hardcode 금지 |
+| `RATES_30D` mutation | 한국수출입은행 데이터로 페이지 로드 시 채워짐. 임의 hardcode 금지 |
 | `updateChartsLive()` | 차트 인스턴스 갱신. 잘못하면 차트 깨짐 |
 | Hero `hero-amount` 영역 | 차상무님이 첫 번째로 보시는 숫자. 값 정합성 절대 보장 |
 | Mobile breakpoint (768px) | 차상무님 외근 시 모바일 사용 가능. 항상 테스트 |
+
+### 🪤 5/20까지 발견된 함정들 (반복 금지!)
+
+이미 시행착오로 학습한 함정. **같은 실수 절대 반복 금지**.
+
+| # | 함정 | 증상 | 해결 |
+|---|------|------|------|
+| **F1** | **In-memory storage fallback** | Vercel deploy마다 `/api/hermes-report` 데이터 wipe | KV env var (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) 확인. `storage='memory'`를 production에서 보면 즉시 박정기 알림 |
+| **F2** | **Race condition (fetchHistory30D vs fetchLiveRate)** | 두 async fetch가 같은 array (`RATES_30D`) mutate. 완료 순서에 따라 chart 마지막 값이 잘못 표시 | `fetchHistory30D` 데이터 적용 후 `if (RATE_SOURCE !== 'mock' && CURRENT_BASE_RATE) RATES_30D[last] = CURRENT_BASE_RATE` 라이브 값 보존 |
+| **F3** | **Chart cubic spline overshoot** | "1489원이 1510원보다 위에 있다" 같은 시각적 혼란. 데이터는 정확하지만 곡선이 데이터 점을 넘김 | `cubicInterpolationMode: 'monotone'` + 마지막 점 dot 표시 (`pointRadius` function). tension 0.35는 유지 가능 |
+| **F4** | **두 다른 시장 환율 비교** | Vendor "현재환율"이 네이버 송금보내실때(tt_send). 차상무님은 IBK 매수 → 무관 | `CURRENT_RATE = base_rate` (매매기준율) — ERP 환율 + 워크북 원가환율과 동일 |
+| **F5** | **Frankfurter ECB cross-rate ≠ 한국 시장** | 한국 마감과 0.5~2원 차이. USD/EUR × EUR/KRW로 cross-computed | 한국수출입은행 API primary로 교체. Frankfurter는 fallback only |
+| **F6** | **Hallucination (존재하지 않는 인물/source)** | "박변호사 시황 분석" 같은 fake source가 보고에 등장 | 모든 인물/source는 vault KB § 2 또는 § 5에 등록된 것만 사용. 새 인물 등장 시 박정기 확인 후 추가 |
+
+자세한 history + 해결 코드는 [`CHANGELOG.md`](./CHANGELOG.md) "디버깅 / Lessons Learned" 섹션 참조.
 
 ---
 
@@ -177,14 +192,32 @@ git push origin main
 
 ## § 9. 검증 체크리스트 (commit 전)
 
+### UX 정합성
 - [ ] 폰트 크기 17px 이상 유지
 - [ ] 상승=빨강, 하락=파랑 컨벤션 유지
 - [ ] tabular-nums 적용 (숫자 정렬)
 - [ ] 모바일 (768px 이하) 깨짐 없음
+
+### API 정합성
 - [ ] API endpoint curl 검증 통과
+- [ ] `/api/hermes-report` storage = "vercel-kv" (memory 아님) — F1
+- [ ] 한국수출입은행 응답 검증 — F5
+
+### 차트 정합성
+- [ ] `cubicInterpolationMode: 'monotone'` 적용 (overshoot 방지) — F3
+- [ ] `RATES_30D[last] = CURRENT_BASE_RATE` 보존 로직 — F2
+- [ ] `CURRENT_RATE = base_rate` (매매기준율) — F4
+- [ ] 차트 끝점 = metric val 일치
+
+### 데이터 정확성
 - [ ] `recommend()` 함수 임의 수정 X
+- [ ] 모든 인물/source = vault KB 등록된 것만 — F6
+- [ ] 모든 숫자에 출처 라벨 (cell 또는 API)
+
+### 운영
 - [ ] 커밋 메시지 prefix (feat/fix/refactor)
 - [ ] PR 필요 변경인지 판단
+- [ ] CHANGELOG.md 업데이트 여부 검토 (significant change 시)
 
 ---
 
