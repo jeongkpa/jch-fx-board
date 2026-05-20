@@ -1206,6 +1206,14 @@ async function fetchHistory30D(){
       RATES_DATES_30D[RATES_DATES_30D.length - 1] = '오늘';
     }
 
+    // 🔥 Race condition fix:
+    // fetchLiveRate가 fetchHistory30D보다 먼저 완료된 경우, 위 forEach가
+    // CURRENT_BASE_RATE를 한국수출입은행 11AM 값으로 덮어씀.
+    // 라이브 환율이 이미 있으면 마지막 점에 다시 적용.
+    if (RATE_SOURCE !== 'mock' && CURRENT_BASE_RATE && RATES_30D.length > 0) {
+      RATES_30D[RATES_30D.length - 1] = CURRENT_BASE_RATE;
+    }
+
     // 차트가 이미 그려져 있으면 즉시 갱신
     if (m1ChartInstance) {
       m1ChartInstance.data.labels = RATES_DATES_30D.slice();
