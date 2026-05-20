@@ -2,11 +2,30 @@
 // Discord로 발송되는 동일 본문을 대시보드에 표시하기 위한 endpoint.
 // Storage priority: Vercel KV/Upstash Redis → serverless memory fallback(dev/preview only).
 
+import { normalizeForecastPayload } from './lib/forecast-eval.js';
+import { createJsonListStore } from './lib/kv-store.js';
+
+export const normalizeForecast = normalizeForecastPayload;
+
 const REPORT_KEY = 'jch:fx-board:hermes-reports';
+const FORECAST_KEY = 'jch:fx-board:hermes-forecasts';
 const MAX_REPORTS = 20;
+const MAX_FORECASTS = 200;
 const MAX_MARKDOWN_CHARS = 12000;
 const MAX_DETAILS_CHARS = 12000;
 const MAX_EVIDENCE_TAGS = 8;
+
+const reportStore = createJsonListStore({
+  key: REPORT_KEY,
+  maxItems: MAX_REPORTS,
+  memoryKey: '__JCH_HERMES_REPORTS'
+});
+
+const forecastStore = createJsonListStore({
+  key: FORECAST_KEY,
+  maxItems: MAX_FORECASTS,
+  memoryKey: '__JCH_HERMES_FORECASTS'
+});
 
 function nowIso(){ return new Date().toISOString(); }
 
@@ -98,6 +117,7 @@ export function normalizeReport(input = {}){
   };
 }
 
+
 function getAuthHeader(req){
   const headers = req.headers || {};
   return headers.authorization || headers.Authorization || '';
@@ -128,40 +148,20 @@ function parseBody(req){
   return req.body;
 }
 
-function storageMode(){
-  return (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) ? 'vercel-kv' : 'memory';
-}
-
-async function kvRequest(command){
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env not configured');
-  const r = await fetch(`${url}/${command}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  if (!r.ok) throw new Error(`KV HTTP ${r.status}`);
-  return r.json();
-}
-
 async function readReports(){
-  if (storageMode() === 'vercel-kv') {
-    const data = await kvRequest(`get/${encodeURIComponent(REPORT_KEY)}`);
-    if (!data?.result) return [];
-    if (Array.isArray(data.result)) return data.result;
-    return JSON.parse(data.result);
-  }
-  if (!globalThis.__JCH_HERMES_REPORTS) globalThis.__JCH_HERMES_REPORTS = [];
-  return globalThis.__JCH_HERMES_REPORTS;
+  return reportStore.readList();
 }
 
 async function writeReports(reports){
-  const clean = reports.slice(0, MAX_REPORTS);
-  if (storageMode() === 'vercel-kv') {
-    await kvRequest(`set/${encodeURIComponent(REPORT_KEY)}/${encodeURIComponent(JSON.stringify(clean))}`);
-    return clean;
-  }
-  globalThis.__JCH_HERMES_REPORTS = clean;
-  return clean;
+  return reportStore.writeList(reports);
+}
+
+async function readForecasts(){
+  return forecastStore.readList();
+}
+
+async function writeForecasts(forecasts){
+  return forecastStore.writeList(forecasts);
 }
 
 function parseLimit(req){
@@ -185,7 +185,7 @@ export default async function handler(req, res){
       const reports = await readReports();
       return res.status(200).json({
         success: true,
-        storage: storageMode(),
+        storage: reportStore.storageMode(),
         latest: reports[0] || null,
         reports: reports.slice(0, limit),
         count: reports.length,
@@ -195,21 +195,47 @@ export default async function handler(req, res){
 
     if (req.method === 'POST') {
       assertAuthorized(req);
-      const report = normalizeReport(parseBody(req));
+      const input = parseBody(req);
+      const report = normalizeReport(input);
+      let forecast = null;
+
+      if (input.forecast || input.direction_forecast || input.directionForecast) {
+        forecast = normalizeForecastPayload(input.forecast ?? input.direction_forecast ?? input.directionForecast, {
+          report,
+          defaultBaseRate: report.rate,
+          defaultRateSource: report.source
+        });
+        report.forecast_id = forecast.id;
+      }
+
       const reports = await readReports();
       const nextReports = await writeReports([report, ...reports].slice(0, MAX_REPORTS));
-      return res.status(200).json({
+
+      let forecastCount = null;
+      if (forecast) {
+        const forecasts = await readForecasts();
+        forecastCount = (await writeForecasts([forecast, ...forecasts].slice(0, MAX_FORECASTS))).length;
+      }
+
+      const payload = {
         success: true,
-        storage: storageMode(),
+        storage: reportStore.storageMode(),
         report,
         count: nextReports.length,
         server_time: nowIso()
-      });
+      };
+      if (forecast) {
+        payload.forecast_id = forecast.id;
+        payload.forecast = forecast;
+        payload.forecast_count = forecastCount;
+      }
+      return res.status(200).json(payload);
     }
 
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (err) {
-    const status = err.statusCode || (err instanceof SyntaxError ? 400 : 500);
+    const validationError = /forecast|horizon|base_rate|target_date|direction|calendar date/.test(err.message || '');
+    const status = err.statusCode || (err instanceof SyntaxError || validationError ? 400 : 500);
     return res.status(status).json({
       success: false,
       error: err.message || String(err),

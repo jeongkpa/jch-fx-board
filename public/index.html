@@ -402,6 +402,21 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 .hermes-outlook-inline-label{font-size:13px;font-weight:800;color:var(--text-tertiary);margin-bottom:6px;}
 .hermes-outlook-inline-value{font-size:18px;font-weight:900;color:var(--text-primary);}
 .hermes-report-empty{color:var(--text-tertiary);font-size:17px;line-height:1.7;}
+.hermes-review-card{background:linear-gradient(180deg,#fff 0%,#FBFCFF 100%);border:1px solid var(--border-soft);}
+.hermes-review-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-3);margin-bottom:var(--s-5);}
+.hermes-review-metric{background:var(--bg-card);border:1px solid var(--border-soft);border-radius:var(--r-lg);padding:var(--s-4);}
+.hermes-review-label{font-size:13px;font-weight:900;color:var(--text-tertiary);margin-bottom:6px;}
+.hermes-review-value{font-size:24px;font-weight:900;color:var(--text-primary);font-variant-numeric:tabular-nums;letter-spacing:-.4px;}
+.hermes-review-sub{font-size:14px;color:var(--text-secondary);font-weight:700;margin-top:4px;}
+.hermes-review-list{display:grid;gap:var(--s-3);}
+.hermes-review-item{display:grid;grid-template-columns:120px 1fr 96px;gap:var(--s-3);align-items:center;border:1px solid var(--border-soft);border-radius:var(--r-lg);padding:var(--s-4);background:var(--bg-subtle);font-size:16px;}
+.hermes-review-date{font-weight:900;color:var(--text-primary);font-variant-numeric:tabular-nums;}
+.hermes-review-desc{color:var(--text-secondary);font-weight:700;line-height:1.45;}
+.hermes-review-badge{justify-self:end;border-radius:var(--r-pill);padding:6px 11px;font-size:13px;font-weight:900;}
+.hermes-review-badge.hit{background:var(--good-50);color:var(--good);}
+.hermes-review-badge.partial_miss{background:var(--warn-50);color:var(--warn);}
+.hermes-review-badge.miss{background:var(--up-50);color:var(--up);}
+.hermes-review-empty{color:var(--text-tertiary);font-size:17px;line-height:1.7;padding:var(--s-4);border:1px dashed var(--border-soft);border-radius:var(--r-lg);background:var(--bg-subtle);}
 
 /* FOOTER */
 .footer{margin-top:var(--s-16);padding:var(--s-8) 0;border-top:1px solid var(--border-soft);font-size:13px;color:var(--text-quaternary);}
@@ -450,6 +465,9 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
   .outlook-direction{font-size:21px;}
   .hermes-outlook-inline{grid-template-columns:1fr;}
   .hermes-basis-grid{grid-template-columns:1fr;}
+  .hermes-review-grid{grid-template-columns:1fr;}
+  .hermes-review-item{grid-template-columns:1fr;}
+  .hermes-review-badge{justify-self:start;}
   .section{padding:var(--s-5);border-radius:var(--r-xl);}
   .section-title{font-size:19px;}
   .vt{font-size:15px;}
@@ -676,6 +694,41 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
           <div class="hermes-detail-body" id="hermes-report-details-body"></div>
         </details>
       </article>
+    </div>
+  </section>
+
+  <section class="section hermes-review-card">
+    <div class="section-head">
+      <h2 class="section-title">
+        Hermes 방향성 복기
+        <span class="badge">최근 30건 · 3일/7일/14일 평가</span>
+      </h2>
+      <button class="chip" id="hermes-review-refresh" type="button">복기 새로고침</button>
+    </div>
+    <div class="hermes-review-grid">
+      <div class="hermes-review-metric">
+        <div class="hermes-review-label">전체 적중률</div>
+        <div class="hermes-review-value" id="hermes-review-overall">—</div>
+        <div class="hermes-review-sub" id="hermes-review-overall-sub">평가 대기</div>
+      </div>
+      <div class="hermes-review-metric">
+        <div class="hermes-review-label">3일 방향</div>
+        <div class="hermes-review-value" id="hermes-review-3d">—</div>
+        <div class="hermes-review-sub" id="hermes-review-3d-sub">—</div>
+      </div>
+      <div class="hermes-review-metric">
+        <div class="hermes-review-label">7일 방향</div>
+        <div class="hermes-review-value" id="hermes-review-7d">—</div>
+        <div class="hermes-review-sub" id="hermes-review-7d-sub">—</div>
+      </div>
+      <div class="hermes-review-metric">
+        <div class="hermes-review-label">14일 방향</div>
+        <div class="hermes-review-value" id="hermes-review-14d">—</div>
+        <div class="hermes-review-sub" id="hermes-review-14d-sub">—</div>
+      </div>
+    </div>
+    <div id="hermes-review-list" class="hermes-review-list">
+      <div class="hermes-review-empty">평가 대기 중입니다. 3일 전망은 첫 보고 후 3일이 지나면 자동 복기됩니다.</div>
     </div>
   </section>
 
@@ -1760,6 +1813,64 @@ function renderHermesReport(report){
   renderOutlookPanel(report);
 }
 
+function pct(value){
+  return typeof value === 'number' ? (value * 100).toFixed(1) + '%' : '—';
+}
+
+function directionKo(direction){
+  return ({ up:'상승', neutral:'중립', down:'하락' })[direction] || '—';
+}
+
+function resultKo(result){
+  return ({ hit:'적중', partial_miss:'부분 오판', miss:'오판' })[result] || '평가 대기';
+}
+
+function setReviewMetric(prefix, summary){
+  const value = document.getElementById(prefix);
+  const sub = document.getElementById(prefix + '-sub');
+  if (!value || !sub) return;
+  const evaluated = summary && typeof summary.evaluated === 'number' ? summary.evaluated : 0;
+  const hit = summary && typeof summary.hit === 'number' ? summary.hit : 0;
+  value.textContent = pct(summary ? summary.hit_rate : null);
+  sub.textContent = evaluated ? hit + '/' + evaluated + ' 적중' : '평가 대기';
+}
+
+function renderHermesReview(data){
+  const metrics = data && data.metrics ? data.metrics : null;
+  const list = document.getElementById('hermes-review-list');
+  setReviewMetric('hermes-review-overall', metrics ? metrics.overall : null);
+  setReviewMetric('hermes-review-3d', metrics ? metrics.by_horizon['3d'] : null);
+  setReviewMetric('hermes-review-7d', metrics ? metrics.by_horizon['7d'] : null);
+  setReviewMetric('hermes-review-14d', metrics ? metrics.by_horizon['14d'] : null);
+  if (!list) return;
+  const rows = data && Array.isArray(data.recent_evaluations) ? data.recent_evaluations.slice(0, 5) : [];
+  if (!rows.length) {
+    const openCount = data && Array.isArray(data.open_forecasts) ? data.open_forecasts.length : 0;
+    list.innerHTML = '<div class="hermes-review-empty">평가 대기 중입니다. 3일 전망은 첫 보고 후 3일이 지나면 자동 복기됩니다.' + (openCount ? ' 현재 미평가 전망 ' + openCount + '건이 기록되어 있습니다.' : '') + '</div>';
+    return;
+  }
+  list.innerHTML = rows.map(function(item){
+    const change = typeof item.rate_change === 'number' ? (item.rate_change > 0 ? '+' : '') + item.rate_change.toFixed(1) + '원' : '—';
+    const desc = (item.horizon || '—') + ' 전망: ' + directionKo(item.predicted_direction) + ' → 실제 ' + change + ' (' + directionKo(item.actual_direction) + ')';
+    return '<div class="hermes-review-item"><div class="hermes-review-date">' + escapeHtml(item.target_date || item.actual_date || '—') + '</div><div class="hermes-review-desc">' + escapeHtml(desc) + '</div><div class="hermes-review-badge ' + escapeHtml(item.result || '') + '">' + escapeHtml(resultKo(item.result)) + '</div></div>';
+  }).join('');
+}
+
+async function fetchHermesReview(){
+  try {
+    const res = await fetch('/api/hermes-forecast-eval?limit=5', { cache:'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'API returned failure');
+    renderHermesReview(data);
+    return true;
+  } catch (err) {
+    console.warn('[hermes-forecast-eval] fetch failed:', err.message || err);
+    renderHermesReview(null);
+    return false;
+  }
+}
+
 async function fetchHermesReport(){
   try {
     const res = await fetch('/api/hermes-report?limit=1', { cache:'no-store' });
@@ -1775,9 +1886,10 @@ async function fetchHermesReport(){
 }
 
 function setupHermesReportRefresh(){
-  const btn = document.getElementById('hermes-report-refresh');
-  if (!btn) return;
-  btn.addEventListener('click', fetchHermesReport);
+  const reportBtn = document.getElementById('hermes-report-refresh');
+  if (reportBtn) reportBtn.addEventListener('click', function(){ fetchHermesReport(); fetchHermesReview(); });
+  const reviewBtn = document.getElementById('hermes-review-refresh');
+  if (reviewBtn) reviewBtn.addEventListener('click', fetchHermesReview);
 }
 
 document.addEventListener('DOMContentLoaded', function(){
@@ -1791,6 +1903,7 @@ document.addEventListener('DOMContentLoaded', function(){
   animateCoverageBar();
   animateLiveTime();
   fetchHermesReport();
+  fetchHermesReview();
 
   // 30일 일별 환율 history (한국수출입은행 매매기준율) — 페이지 로드 시 1회
   fetchHistory30D();
