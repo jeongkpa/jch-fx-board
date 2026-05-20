@@ -420,6 +420,10 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 
 /* FOOTER */
 .footer{margin-top:var(--s-16);padding:var(--s-8) 0;border-top:1px solid var(--border-soft);font-size:13px;color:var(--text-quaternary);}
+.review-jump-row{display:flex;justify-content:center;margin-top:var(--s-5);}
+.review-jump-button{border:1px solid var(--border-soft);background:var(--bg-card);color:var(--text-tertiary);border-radius:var(--r-pill);padding:7px 13px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:var(--shadow-sm);transition:all .16s ease;}
+.review-jump-button:hover{color:var(--brand-strong);border-color:var(--brand);transform:translateY(-1px);}
+.hermes-review-card[hidden]{display:none;}
 .footer-grid{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--s-3);}
 .footer-sources{display:flex;gap:var(--s-2);flex-wrap:wrap;}
 .footer-sources .hero-source-pill{font-size:12px;}
@@ -697,40 +701,6 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
     </div>
   </section>
 
-  <section class="section hermes-review-card">
-    <div class="section-head">
-      <h2 class="section-title">
-        Hermes 방향성 복기
-        <span class="badge">최근 30건 · 3일/7일/14일 평가</span>
-      </h2>
-      <button class="chip" id="hermes-review-refresh" type="button">복기 새로고침</button>
-    </div>
-    <div class="hermes-review-grid">
-      <div class="hermes-review-metric">
-        <div class="hermes-review-label">전체 적중률</div>
-        <div class="hermes-review-value" id="hermes-review-overall">—</div>
-        <div class="hermes-review-sub" id="hermes-review-overall-sub">평가 대기</div>
-      </div>
-      <div class="hermes-review-metric">
-        <div class="hermes-review-label">3일 방향</div>
-        <div class="hermes-review-value" id="hermes-review-3d">—</div>
-        <div class="hermes-review-sub" id="hermes-review-3d-sub">—</div>
-      </div>
-      <div class="hermes-review-metric">
-        <div class="hermes-review-label">7일 방향</div>
-        <div class="hermes-review-value" id="hermes-review-7d">—</div>
-        <div class="hermes-review-sub" id="hermes-review-7d-sub">—</div>
-      </div>
-      <div class="hermes-review-metric">
-        <div class="hermes-review-label">14일 방향</div>
-        <div class="hermes-review-value" id="hermes-review-14d">—</div>
-        <div class="hermes-review-sub" id="hermes-review-14d-sub">—</div>
-      </div>
-    </div>
-    <div id="hermes-review-list" class="hermes-review-list">
-      <div class="hermes-review-empty">평가 대기 중입니다. 3일 전망은 첫 보고 후 3일이 지나면 자동 복기됩니다.</div>
-    </div>
-  </section>
 
   <section class="section">
     <div class="section-head">
@@ -807,7 +777,45 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
         <span class="hero-source-pill">Pretendard · Toss Design</span>
       </div>
     </div>
+    <div class="review-jump-row">
+      <button class="review-jump-button" id="hermes-review-open" type="button">복기하러 가기</button>
+    </div>
   </footer>
+
+  <section class="section hermes-review-card" id="hermes-review-section" hidden>
+    <div class="section-head">
+      <h2 class="section-title">
+        Hermes 방향성 복기
+        <span class="badge">최근 30건 · 3일/7일/14일 평가</span>
+      </h2>
+      <button class="chip" id="hermes-review-refresh" type="button">복기 새로고침</button>
+    </div>
+    <div class="hermes-review-grid">
+      <div class="hermes-review-metric">
+        <div class="hermes-review-label">전체 적중률</div>
+        <div class="hermes-review-value" id="hermes-review-overall">—</div>
+        <div class="hermes-review-sub" id="hermes-review-overall-sub">평가 대기</div>
+      </div>
+      <div class="hermes-review-metric">
+        <div class="hermes-review-label">3일 방향</div>
+        <div class="hermes-review-value" id="hermes-review-3d">—</div>
+        <div class="hermes-review-sub" id="hermes-review-3d-sub">—</div>
+      </div>
+      <div class="hermes-review-metric">
+        <div class="hermes-review-label">7일 방향</div>
+        <div class="hermes-review-value" id="hermes-review-7d">—</div>
+        <div class="hermes-review-sub" id="hermes-review-7d-sub">—</div>
+      </div>
+      <div class="hermes-review-metric">
+        <div class="hermes-review-label">14일 방향</div>
+        <div class="hermes-review-value" id="hermes-review-14d">—</div>
+        <div class="hermes-review-sub" id="hermes-review-14d-sub">—</div>
+      </div>
+    </div>
+    <div id="hermes-review-list" class="hermes-review-list">
+      <div class="hermes-review-empty">평가 대기 중입니다. 3일 전망은 첫 보고 후 3일이 지나면 자동 복기됩니다.</div>
+    </div>
+  </section>
 
 </div>
 </main>
@@ -873,6 +881,7 @@ let LAST_FETCHED = null;
 let RATE_SOURCE = 'mock';
 let CROSS_CHECK = null;
 let CURRENT_SORT = 'gap';
+let HERMES_REVIEW_LOADED = false;
 
 function recommend(cost, current, open){
   if (!open || open === 0) return { pct:0, label:'잔량 없음', cls:'wait' };
@@ -1885,11 +1894,24 @@ async function fetchHermesReport(){
   }
 }
 
+async function openHermesReview(){
+  const section = document.getElementById('hermes-review-section');
+  if (!section) return;
+  section.hidden = false;
+  section.scrollIntoView({ behavior:'smooth', block:'start' });
+  if (!HERMES_REVIEW_LOADED) {
+    HERMES_REVIEW_LOADED = await fetchHermesReview();
+  }
+}
+
 function setupHermesReportRefresh(){
   const reportBtn = document.getElementById('hermes-report-refresh');
-  if (reportBtn) reportBtn.addEventListener('click', function(){ fetchHermesReport(); fetchHermesReview(); });
+  if (reportBtn) reportBtn.addEventListener('click', fetchHermesReport);
+  const reviewOpenBtn = document.getElementById('hermes-review-open');
+  if (reviewOpenBtn) reviewOpenBtn.addEventListener('click', openHermesReview);
   const reviewBtn = document.getElementById('hermes-review-refresh');
-  if (reviewBtn) reviewBtn.addEventListener('click', fetchHermesReview);
+  if (reviewBtn) reviewBtn.addEventListener('click', async function(){ HERMES_REVIEW_LOADED = await fetchHermesReview(); });
+  if (window.location.hash === '#hermes-review-section') openHermesReview();
 }
 
 document.addEventListener('DOMContentLoaded', function(){
@@ -1903,7 +1925,6 @@ document.addEventListener('DOMContentLoaded', function(){
   animateCoverageBar();
   animateLiveTime();
   fetchHermesReport();
-  fetchHermesReview();
 
   // 30일 일별 환율 history (한국수출입은행 매매기준율) — 페이지 로드 시 1회
   fetchHistory30D();
