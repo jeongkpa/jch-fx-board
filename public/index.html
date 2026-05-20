@@ -1057,7 +1057,14 @@ function tossLineChart(canvasId, labels, data, opts){
         borderWidth:2.5,
         fill:true,
         tension:.35,
-        pointRadius:0,
+        cubicInterpolationMode:'monotone',  // 🔥 overshoot 방지 — 곡선이 데이터 점을 절대 넘어가지 않음
+        pointRadius:function(ctx){
+          // 마지막 점(오늘/현재)만 dot 표시 → 사용자 시각 anchor
+          return ctx.dataIndex === ctx.dataset.data.length - 1 ? 4 : 0;
+        },
+        pointBackgroundColor:'#3182F6',
+        pointBorderColor:'#fff',
+        pointBorderWidth:2,
         pointHoverRadius:5,
         pointHoverBackgroundColor:'#3182F6',
         pointHoverBorderColor:'#fff',
