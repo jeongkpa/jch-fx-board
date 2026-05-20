@@ -113,7 +113,7 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 .metric-tag{font-size:13px;font-weight:700;padding:4px 10px;border-radius:var(--r-pill);background:var(--bg-subtle);color:var(--text-tertiary);letter-spacing:.2px;}
 .metric-val{font-size:36px;font-weight:800;letter-spacing:-1.1px;line-height:1.1;color:var(--text-primary);margin-bottom:var(--s-2);}
 .metric-delta{display:inline-flex;align-items:center;gap:4px;font-size:15px;font-weight:600;}
-.metric-extra{margin-top:var(--s-4);height:64px;position:relative;}
+.metric-extra{margin-top:var(--s-4);height:120px;position:relative;}
 .metric-list{display:flex;flex-direction:column;gap:var(--s-2);margin-top:var(--s-3);}
 .metric-list-item{display:flex;align-items:center;justify-content:space-between;font-size:15px;}
 .metric-list-name{color:var(--text-secondary);font-weight:500;}
@@ -944,6 +944,38 @@ Chart.defaults.font.size = 13;
 Chart.defaults.color = '#8B95A1';
 Chart.defaults.borderColor = '#EEF0F3';
 
+// 🔥 Custom plugin: 기준선 (전일 종가 등 reference horizontal line)
+const baselinePlugin = {
+  id: 'baseline',
+  afterDatasetDraw(chart){
+    const opts = chart.options.plugins && chart.options.plugins.baseline;
+    if (!opts || typeof opts.value !== 'number' || !isFinite(opts.value)) return;
+    const { ctx, chartArea, scales } = chart;
+    const y = scales.y.getPixelForValue(opts.value);
+    if (y < chartArea.top - 1 || y > chartArea.bottom + 1) return;
+    ctx.save();
+    // dashed line
+    ctx.beginPath();
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = opts.color || 'rgba(75, 85, 99, 0.55)';
+    ctx.moveTo(chartArea.left, y);
+    ctx.lineTo(chartArea.right, y);
+    ctx.stroke();
+    // label (right-aligned)
+    if (opts.label) {
+      ctx.setLineDash([]);
+      ctx.font = '600 11px Pretendard, system-ui';
+      ctx.fillStyle = opts.color || '#4E5968';
+      ctx.textBaseline = 'bottom';
+      ctx.textAlign = 'right';
+      ctx.fillText(opts.label, chartArea.right - 6, y - 3);
+    }
+    ctx.restore();
+  }
+};
+Chart.register(baselinePlugin);
+
 function tossLineChart(canvasId, labels, data, opts){
   opts = opts || {};
   const ctx = document.getElementById(canvasId).getContext('2d');
@@ -984,7 +1016,8 @@ function tossLineChart(canvasId, labels, data, opts){
           bodyFont:{size:14,weight:700},
           displayColors:false,
           callbacks:{label:function(c){ return c.parsed.y.toFixed(2) + ' 원'; }}
-        }
+        },
+        baseline: opts.baseline || false   // 🔥 기준선 plugin 옵션
       },
       scales:{
         x:{display:false,grid:{display:false}},
@@ -1001,8 +1034,16 @@ function renderHeroChart(){
   updateHeroMinMax();
 }
 function renderM1Chart(){
-  // 1개월 일별 차트 (30 daily points)
-  m1ChartInstance = tossLineChart('m1Chart', RATES_DATES_30D, RATES_30D, { height:64 });
+  // 1개월 일별 차트 + 전일 종가 기준선
+  // PREVIOUS_RATE는 fetchHistory30D 완료 후 갱신되므로, baseline은 동적으로 채워짐
+  m1ChartInstance = tossLineChart('m1Chart', RATES_DATES_30D, RATES_30D, {
+    height: 120,
+    baseline: {
+      value: (PREVIOUS_RATE && PREVIOUS_RATE !== 1478.30) ? PREVIOUS_RATE : null,
+      label: '전일 ' + (PREVIOUS_RATE && PREVIOUS_RATE !== 1478.30 ? PREVIOUS_RATE.toFixed(2) : ''),
+      color: 'rgba(75, 85, 99, 0.55)'
+    }
+  });
 }
 
 // Hero 차트 아래 min/max 라벨 갱신
@@ -1233,10 +1274,18 @@ async function fetchHistory30D(){
     }
     // (라이브가 아직 없으면 한국수출입은행 마지막 영업일이 차트의 끝점)
 
-    // 차트가 이미 그려져 있으면 즉시 갱신
+    // 차트가 이미 그려져 있으면 즉시 갱신 (data + baseline 동기화)
     if (m1ChartInstance) {
       m1ChartInstance.data.labels = RATES_DATES_30D.slice();
       m1ChartInstance.data.datasets[0].data = RATES_30D.slice();
+      // 🔥 기준선 동기화 — PREVIOUS_RATE가 실데이터로 갱신됐으면 적용
+      if (m1ChartInstance.options.plugins && PREVIOUS_RATE && PREVIOUS_RATE !== 1478.30) {
+        m1ChartInstance.options.plugins.baseline = {
+          value: PREVIOUS_RATE,
+          label: '전일 ' + PREVIOUS_RATE.toFixed(2) + (PREVIOUS_CLOSE_LABEL ? ' (' + PREVIOUS_CLOSE_LABEL + ')' : ''),
+          color: 'rgba(75, 85, 99, 0.55)'
+        };
+      }
       m1ChartInstance.update('none');
     }
 
