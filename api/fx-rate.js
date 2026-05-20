@@ -26,6 +26,75 @@ async function fetchWithTimeout(url, opts = {}, timeoutMs = TIMEOUT_MS) {
   }
 }
 
+// ---------- KV helpers (intraday snapshot 저장용) ----------
+function kvAvailable(){
+  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
+async function kvRequest(path){
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  const r = await fetch(`${url}/${path}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!r.ok) throw new Error(`KV HTTP ${r.status}`);
+  return r.json();
+}
+
+async function kvGet(key){
+  const data = await kvRequest(`get/${encodeURIComponent(key)}`);
+  if (!data?.result) return null;
+  if (typeof data.result === 'string') {
+    try { return JSON.parse(data.result); } catch { return data.result; }
+  }
+  return data.result;
+}
+
+async function kvSetWithTTL(key, value, ttlSec){
+  const body = encodeURIComponent(JSON.stringify(value));
+  const k = encodeURIComponent(key);
+  return kvRequest(`set/${k}/${body}?EX=${ttlSec}`);
+}
+
+// KST 오늘 날짜 (YYYY-MM-DD)
+function kstToday(now = new Date()){
+  const kst = new Date(now.getTime() + 9*60*60*1000);
+  return kst.toISOString().slice(0, 10);
+}
+
+// 실시간 환율을 KV에 snapshot 저장 (60초 throttle, TTL 48시간)
+// 매 fetch마다 호출됨. 결과로 시간별 누적 시계열 형성.
+async function snapshotIntraday(primary){
+  if (!kvAvailable()) return { stored: false, reason: 'kv-disabled' };
+  if (!primary || typeof primary.base_rate !== 'number') {
+    return { stored: false, reason: 'no-rate' };
+  }
+  const today = kstToday();
+  const key = `fx:intraday:${today}`;
+  try {
+    const existing = await kvGet(key);
+    const list = Array.isArray(existing) ? existing : [];
+    const nowMs = Date.now();
+    if (list.length > 0) {
+      const lastTs = new Date(list[list.length - 1].ts).getTime();
+      if (nowMs - lastTs < 60_000) {
+        return { stored: false, reason: 'throttled', last_ts: list[list.length - 1].ts };
+      }
+    }
+    list.push({
+      ts: new Date().toISOString(),
+      rate: primary.base_rate,
+      tt_send: primary.tt_send ?? null,
+      source: primary.source
+    });
+    const trimmed = list.length > 500 ? list.slice(-500) : list;
+    await kvSetWithTTL(key, trimmed, 172800);   // 48h TTL
+    return { stored: true, count: trimmed.length, date: today };
+  } catch (err) {
+    return { stored: false, error: err.message || String(err) };
+  }
+}
+
 // ---------- naver adapter ----------
 async function fetchNaver() {
   const r = await fetchWithTimeout(NAVER_URL, {
@@ -163,10 +232,14 @@ export default async function handler(req, res) {
     };
   }
 
+  // Intraday snapshot 저장 (KV, throttled). 실패해도 응답엔 영향 없음.
+  const intraday_snapshot = await snapshotIntraday(primary);
+
   return res.status(200).json({
     success: true,
     primary,
     cross_check,
+    intraday_snapshot,
     attempts: results.map(r => ({
       adapter: r.adapter,
       success: r.success,

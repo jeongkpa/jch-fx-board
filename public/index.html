@@ -1020,14 +1020,10 @@ function updateHeroMinMax(){
 
 // 라이브 환율 폴링 시 양쪽 차트의 마지막 포인트 갱신
 function updateChartsLive(){
-  // 1) Hero 시간당 차트: 마지막 포인트 '현재' = 라이브 매매기준율
-  if (heroChartInstance) {
-    RATES_TODAY_HOURLY[RATES_TODAY_HOURLY.length - 1] = CURRENT_BASE_RATE;
-    heroChartInstance.data.datasets[0].data = RATES_TODAY_HOURLY.slice();
-    heroChartInstance.update('none');
-    updateHeroMinMax();
-  }
-  // 2) Metric 1개월 차트: 마지막 포인트 '오늘' = 라이브 매매기준율
+  // Hero 시간당 차트는 fetchIntraday()가 KV 기반으로 갱신 (이 함수 밖)
+  // 여기서는 1개월 차트만 마지막 점 라이브 갱신
+
+  // Metric 1개월 차트: 마지막 포인트 '오늘' = 라이브 매매기준율
   if (m1ChartInstance) {
     RATES_30D[RATES_30D.length - 1] = CURRENT_BASE_RATE;
     m1ChartInstance.data.datasets[0].data = RATES_30D.slice();
@@ -1096,6 +1092,79 @@ function renderPositionChart(){
 // 30일 일별 환율 히스토리 (yfinance) — 페이지 로드 시 1회
 // Phase 0: yfinance LIVE / Phase 1: Supabase fx_rates_yfinance 시계열로 전환
 // =========================================================
+// =========================================================
+// 오늘 시간당 환율 — KV 누적 snapshot 기반 LIVE (네이버 매매기준율)
+// 차트 구성:
+//   00:00 (PREVIOUS_RATE = 전날 종가) → 09:00 전까지 flat line
+//   09:00 ~ 현재 → 실측 snapshot 점들 (1분 throttle)
+// =========================================================
+let TODAY_SNAPSHOTS = [];  // [{ts, rate, source}, ...]
+
+function kstHM(isoTs){
+  const d = new Date(isoTs);
+  const kst = new Date(d.getTime() + 9*60*60*1000);
+  const hh = String(kst.getUTCHours()).padStart(2,'0');
+  const mm = String(kst.getUTCMinutes()).padStart(2,'0');
+  return hh + ':' + mm;
+}
+
+function rebuildHeroChart(){
+  if (!heroChartInstance) return;
+
+  const labels = [];
+  const values = [];
+
+  // Seed: 00:00 (전날 종가)
+  // PREVIOUS_RATE가 fetchHistory30D로 갱신됐을 때만 사용 (초기 mock 값 1478.30 회피)
+  if (PREVIOUS_RATE !== null && PREVIOUS_RATE !== 1478.30) {
+    labels.push('00:00');
+    values.push(PREVIOUS_RATE);
+  }
+
+  // 실측 snapshots (KV)
+  TODAY_SNAPSHOTS.forEach(s => {
+    if (typeof s.rate === 'number' && s.rate > 800 && s.rate < 2000) {
+      labels.push(kstHM(s.ts));
+      values.push(s.rate);
+    }
+  });
+
+  // 데이터 없으면 차트 빈 상태로 — 깨지진 않음
+  if (labels.length === 0) {
+    heroChartInstance.data.labels = ['—'];
+    heroChartInstance.data.datasets[0].data = [CURRENT_BASE_RATE];
+    heroChartInstance.update('none');
+    return;
+  }
+
+  heroChartInstance.data.labels = labels;
+  heroChartInstance.data.datasets[0].data = values;
+  heroChartInstance.update('none');
+
+  // 최저/최고 라벨 갱신 (실데이터 기반)
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const minEl = document.getElementById('hero-today-min');
+  const maxEl = document.getElementById('hero-today-max');
+  if (minEl) minEl.textContent = '오늘 최저 ' + min.toFixed(2);
+  if (maxEl) maxEl.textContent = '최고 ' + max.toFixed(2);
+}
+
+async function fetchIntraday(){
+  try {
+    const res = await fetch('/api/fx-intraday', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'no success');
+    TODAY_SNAPSHOTS = Array.isArray(data.snapshots) ? data.snapshots : [];
+    rebuildHeroChart();
+    return true;
+  } catch (err) {
+    console.warn('[fx-intraday] fetch failed:', err.message || err);
+    return false;
+  }
+}
+
 async function fetchHistory30D(){
   try {
     const res = await fetch('/api/fx-history?days=30', { cache: 'no-store' });
@@ -1647,13 +1716,18 @@ document.addEventListener('DOMContentLoaded', function(){
   animateLiveTime();
   fetchHermesReport();
 
-  // 30일 yfinance 일별 히스토리 — 페이지 로드 시 1회 (그 후 정적)
-  // 라이브 환율 폴링과 병렬 실행: history 먼저 시작, rate가 도착하면 1개월 delta 재계산
+  // 30일 일별 환율 history (한국수출입은행 매매기준율) — 페이지 로드 시 1회
   fetchHistory30D();
 
-  // 라이브 환율 (네이버 송금보내실때) — 1분 polling
+  // 라이브 환율 (네이버 매매기준율) — 1분 polling, KV에 snapshot 저장
   fetchLiveRate();
   setInterval(fetchLiveRate, 60000);
+
+  // 🔥 오늘 시간당 환율 — KV snapshot 누적 (00:00=전날종가 → 09:00~ 실측)
+  // fetchLiveRate가 KV write 후 잠깐 delay로 read 시점 보장
+  fetchIntraday();
+  setInterval(fetchIntraday, 60000);
+
   setInterval(updateStaleness, 15000);
 });
 </script>
