@@ -1226,7 +1226,18 @@ function rebuildHeroChart(){
   const labels = [];
   const values = [];
   const hasPrev = PREVIOUS_RATE !== null && PREVIOUS_RATE !== 1478.30;
-  const hasTodayData = TODAY_SNAPSHOTS.length > 0;
+
+  // 🔥 KST 오늘 날짜 (YYYY-MM-DD) 필터 — 어제 snapshots 제외
+  // TODAY_SNAPSHOTS가 누적으로 어제+오늘 다 포함하기 때문에 frontend에서 필터
+  const todayKstDate = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const todaySnaps = TODAY_SNAPSHOTS.filter(s => {
+    if (!s || !s.ts) return false;
+    const ts = new Date(s.ts).getTime();
+    if (isNaN(ts)) return false;
+    const sKstDate = new Date(ts + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    return sKstDate === todayKstDate;
+  });
+  const hasTodayData = todaySnaps.length > 0;
 
   // 🔥 KST 시간 기반 분기
   // - 09:00 이후 + 오늘 snapshots 있음 → 오늘 데이터만 (전날 종가 seed 제거)
@@ -1236,7 +1247,7 @@ function rebuildHeroChart(){
 
   if (afterMarketOpen && hasTodayData) {
     // 📈 시장 오픈 후 — 오늘 데이터만 표시 (전날 fade out)
-    TODAY_SNAPSHOTS.forEach(s => {
+    todaySnaps.forEach(s => {
       if (typeof s.rate === 'number' && s.rate > 800 && s.rate < 2000) {
         labels.push(kstHM(s.ts));
         values.push(s.rate);
@@ -1248,17 +1259,15 @@ function rebuildHeroChart(){
       labels.push('00:00');
       values.push(PREVIOUS_RATE);
     }
-    // 09시 이후 첫 snapshot 들어왔지만 이 분기로 못 왔을 가능성은 없음 (위 if에서 처리)
-    // 따라서 여기는 09시 이전 또는 snapshots 비어있는 상황만
     if (hasPrev && hasTodayData) {
-      const firstSnap = TODAY_SNAPSHOTS[0];
+      const firstSnap = todaySnaps[0];
       const firstHourKST = (new Date(firstSnap.ts).getUTCHours() + 9) % 24;
       if (firstHourKST >= 9) {
         labels.push('08:59');
         values.push(PREVIOUS_RATE);
       }
     }
-    TODAY_SNAPSHOTS.forEach(s => {
+    todaySnaps.forEach(s => {
       if (typeof s.rate === 'number' && s.rate > 800 && s.rate < 2000) {
         labels.push(kstHM(s.ts));
         values.push(s.rate);
