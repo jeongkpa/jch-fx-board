@@ -18,6 +18,44 @@ JCH FX Dashboard (`jch-fx-board`) 개발 진척 시간순 기록.
 
 ---
 
+## [1.3.1] — 2026-05-21 (D11)
+
+### 🐛 Fixed
+- **새로고침 시 mock 차트 잠시 노출** (`797c61e`)
+  - 증상: 페이지 로드 직후 5/12 mock 데이터 (1485~1492 범위) 잠시 표시 → fetchHistory30D 완료 시 한국수출입은행 실데이터 (1506+)로 교체되며 차트 모양 변화 → 사용자 인지 시간 1~2분
+  - 원인: `RATES_30D` const 배열이 30개 mock 값으로 hardcoded되어 페이지 로드 즉시 mock 차트 출력
+  - 수정: 빈 배열로 시작 + `localStorage` 캐시 `jch_30d_cache_v1` (24h TTL)
+  - 효과: 두 번째 방문부터 즉시 어제 데이터 표시 (fresh fetch는 백그라운드, 사용자 거의 인지 X)
+
+- **Hero intraday 차트 KST 09:00 분기** (`1742d41`)
+  - 요구사항 (차상무님): "한국시간 09:00 이후엔 전날 데이터 없애고 오늘 데이터만"
+  - 수정: `rebuildHeroChart()`에 `nowKstHour >= 9` 조건 추가
+  - 09:00 전 → 전날 종가 flat (1503.80 등) / 09:00 후 → 오늘 snapshots만
+
+- **TODAY_SNAPSHOTS 어제 데이터 누적** (`1cbdabd`)
+  - 진단: `/api/fx-intraday`가 24h+ 누적 snapshots 반환 (500개, 어제 자정~오늘 14:10 모두)
+  - 결과: "09시 이후 룰"이 무력화 (어제 자정~새벽 ~ 오늘 다 표시됨)
+  - 수정: `rebuildHeroChart()`에 KST 오늘 날짜 (`YYYY-MM-DD`) 필터 추가
+  - 매일 KST 자정 자동 reset (별도 cron 不요)
+
+- **KST 09시 이전 새벽 snapshots 제외** (`de91253`)
+  - 1단계 fix 후에도 KST 00:29~08:59 새벽 글로벌 시장 데이터 차트 노출
+  - 추가 조건: `sKstHour >= 9` (KRX 거래 시간만)
+  - 결과: 차트가 정확히 09:00부터 현재까지만 표시 (예: 214 points / 14:14 시점)
+
+### ✨ Added
+- **localStorage 캐시** (`jch_30d_cache_v1`, 24h TTL)
+  - 구조: `{ v: number[], l: string[], ts: number }`
+  - fetchHistory30D 완료 시 자동 저장
+  - 두 번째 방문 시 cache 우선 적용 → fresh fetch 백그라운드
+
+### 🔬 Verification (Claude-in-Chrome direct browser eval)
+- T+0.1s ~ T+3s 시간대별 snapshot 캡처
+- 차트 라벨 / 픽셀 위치 / 데이터 값 100% 일치 확인
+- KST 09시 이전 라벨 수: 0 (의도 부합)
+
+---
+
 ## [1.3.0] — 2026-05-20 (D10)
 
 ### 🐛 Fixed
@@ -177,6 +215,18 @@ JCH FX Dashboard (`jch-fx-board`) 개발 진척 시간순 기록.
    - "박변호사 시황 분석" 같은 존재하지 않는 인물이 보고에 등장
    - 해결: 사용자 신고 시 vault 전체 grep + 즉시 제거
    - 룰: Hermes는 검증된 인물/source만 인용
+
+7. **Mock 초기값 즉시 노출 위험** (2026-05-21)
+   - Hardcoded mock 배열 (5/12 RATES_30D)이 페이지 로드 즉시 차트로 출력
+   - fetchHistory30D 완료 전까지 잘못된 데이터 표시
+   - 해결: 빈 배열로 시작 + localStorage 캐시 (24h TTL)
+   - 룰: production에서 hardcoded mock 사용 시 반드시 placeholder 또는 cache 동반
+
+8. **KV 누적 시계열에서 어제 데이터 섞임** (2026-05-21)
+   - `/api/fx-intraday`가 24h+ 누적 snapshots 반환
+   - frontend에서 "오늘만" 의도해도 KV에 들어있는 어제 데이터까지 표시됨
+   - 해결: frontend에서 KST 날짜 + 시간 (`YYYY-MM-DD` + hour >= 9) 기반 필터
+   - 룰: KV/Redis 시계열 사용 시 frontend timezone 정합성 검증 필수
 
 ### 🛡 적용된 안전장치
 

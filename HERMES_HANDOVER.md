@@ -148,6 +148,8 @@
 | **F4** | **두 다른 시장 환율 비교** | Vendor "현재환율"이 네이버 송금보내실때(tt_send). 차상무님은 IBK 매수 → 무관 | `CURRENT_RATE = base_rate` (매매기준율) — ERP 환율 + 워크북 원가환율과 동일 |
 | **F5** | **Frankfurter ECB cross-rate ≠ 한국 시장** | 한국 마감과 0.5~2원 차이. USD/EUR × EUR/KRW로 cross-computed | 한국수출입은행 API primary로 교체. Frankfurter는 fallback only |
 | **F6** | **Hallucination (존재하지 않는 인물/source)** | "박변호사 시황 분석" 같은 fake source가 보고에 등장 | 모든 인물/source는 vault KB § 2 또는 § 5에 등록된 것만 사용. 새 인물 등장 시 박정기 확인 후 추가 |
+| **F7** | **Mock 초기값 즉시 노출** (5/21) | Hardcoded mock 배열이 페이지 로드 즉시 차트로 출력 → 1~2분 잘못된 데이터 노출 | 빈 배열로 시작 + localStorage 캐시 (24h TTL) — `RATES_30D = []` + cache restore |
+| **F8** | **KV 누적 시계열 어제 데이터 섞임** (5/21) | `/api/fx-intraday` 24h+ 누적으로 어제+오늘 다 반환 → "오늘만" 차트 룰 무력화 | frontend에서 KST 날짜+시간 기반 필터 — `YYYY-MM-DD` 일치 AND `hour >= 9` |
 
 자세한 history + 해결 코드는 [`CHANGELOG.md`](./CHANGELOG.md) "디버깅 / Lessons Learned" 섹션 참조.
 
