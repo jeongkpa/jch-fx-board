@@ -824,21 +824,23 @@ main{flex:1;padding:var(--s-8) 0 var(--s-16);}
 <script>
 'use strict';
 
-const RATES_30D = [
-  1485.20,1487.10,1484.80,1482.30,1481.50,
-  1492.00,1489.40,1486.70,1483.20,1480.10,
-  1478.60,1475.40,1473.10,1471.80,1469.50,
-  1468.00,1470.20,1472.80,1474.10,1473.50,
-  1475.20,1476.80,1474.30,1472.50,1473.90,
-  1475.60,1476.40,1477.80,1478.30,1479.50
-];
+// 🔥 30일 시계열 — 빈 배열로 시작 (mock 제거)
+// 페이지 로드 시 localStorage cache → 즉시 어제 데이터 표시 (있으면)
+// fetchHistory30D 완료 시 한국수출입은행 실데이터로 교체
+const RATES_30D = [];
+const RATES_DATES_30D = [];
 
-// 30-day daily series (last point = 오늘, updated live by fetchLiveRate)
-const RATES_DATES_30D = [
-  '4/16','4/17','4/18','4/19','4/20','4/23','4/24','4/25','4/26','4/27',
-  '4/30','5/1','5/2','5/3','5/4','5/7','5/8','5/9','5/10','5/11',
-  '5/12','5/13','5/14','5/15','5/16','5/17','5/18','5/19','5/20','오늘'
-];
+// localStorage 캐시 복원 (24시간 이내) — 두 번째 방문 시 즉시 차트 그림
+try {
+  const c = JSON.parse(localStorage.getItem('jch_30d_cache_v1') || 'null');
+  if (c && c.ts && (Date.now() - c.ts) < 86400000 &&
+      Array.isArray(c.v) && c.v.length > 0 &&
+      Array.isArray(c.l) && c.l.length === c.v.length) {
+    c.v.forEach(x => RATES_30D.push(x));
+    c.l.forEach(x => RATES_DATES_30D.push(x));
+    console.log('[cache] restored', c.v.length, 'points from', new Date(c.ts).toLocaleString());
+  }
+} catch(e) { /* ignore cache errors */ }
 
 // 오늘 시간당 시계열 (KRX 거래 시간 09:00~15:00 + 현재)
 // 마지막 포인트 '현재'는 fetchLiveRate가 매 폴링마다 갱신
@@ -1361,10 +1363,19 @@ async function fetchHistory30D(){
     // 라이브 환율 이미 있으면 1개월 delta 즉시 재계산
     if (RATE_SOURCE !== 'mock') updateRateUI();
 
+    // 🔥 localStorage 캐시 저장 — 다음 페이지 로드 시 즉시 표시
+    try {
+      localStorage.setItem('jch_30d_cache_v1', JSON.stringify({
+        v: RATES_30D.slice(),
+        l: RATES_DATES_30D.slice(),
+        ts: Date.now()
+      }));
+    } catch(e) { /* localStorage full / disabled — ignore */ }
+
     console.log('[fx-history] loaded ' + data.count + ' daily points from ' + data.source);
     return true;
   } catch (err) {
-    console.warn('[fx-history] fetch failed (keeping mock):', err.message || err);
+    console.warn('[fx-history] fetch failed (keeping cache or empty):', err.message || err);
     return false;
   }
 }
