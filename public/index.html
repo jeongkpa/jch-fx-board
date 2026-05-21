@@ -1227,15 +1227,18 @@ function rebuildHeroChart(){
   const values = [];
   const hasPrev = PREVIOUS_RATE !== null && PREVIOUS_RATE !== 1478.30;
 
-  // 🔥 KST 오늘 날짜 (YYYY-MM-DD) 필터 — 어제 snapshots 제외
-  // TODAY_SNAPSHOTS가 누적으로 어제+오늘 다 포함하기 때문에 frontend에서 필터
+  // 🔥 KST 오늘 + 09시 이후 필터 — 어제 + 새벽 데이터 제외
+  // KRX 거래 시간 09:00 KST 이후 snapshot만 차트에 표시 (차상무님 의사결정 기준)
+  // TODAY_SNAPSHOTS는 KV에 24h+ 누적되므로 frontend에서 필터링
   const todayKstDate = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const todaySnaps = TODAY_SNAPSHOTS.filter(s => {
     if (!s || !s.ts) return false;
     const ts = new Date(s.ts).getTime();
     if (isNaN(ts)) return false;
-    const sKstDate = new Date(ts + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    return sKstDate === todayKstDate;
+    const sKst = new Date(ts + 9 * 60 * 60 * 1000);
+    const sKstDate = sKst.toISOString().slice(0, 10);
+    const sKstHour = sKst.getUTCHours();
+    return sKstDate === todayKstDate && sKstHour >= 9;  // KST 오늘 + 09시 이후
   });
   const hasTodayData = todaySnaps.length > 0;
 
