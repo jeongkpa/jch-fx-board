@@ -1226,31 +1226,45 @@ function rebuildHeroChart(){
   const labels = [];
   const values = [];
   const hasPrev = PREVIOUS_RATE !== null && PREVIOUS_RATE !== 1478.30;
+  const hasTodayData = TODAY_SNAPSHOTS.length > 0;
 
-  // Seed: 00:00 (전날 종가)
-  if (hasPrev) {
-    labels.push('00:00');
-    values.push(PREVIOUS_RATE);
-  }
+  // 🔥 KST 시간 기반 분기
+  // - 09:00 이후 + 오늘 snapshots 있음 → 오늘 데이터만 (전날 종가 seed 제거)
+  // - 그 외 (09:00 전 OR snapshots 없음) → 전날 종가 flat + 08:59 boundary + 오늘
+  const nowKstHour = (new Date().getUTCHours() + 9) % 24;
+  const afterMarketOpen = nowKstHour >= 9;  // KST 09:00 ~ 23:59
 
-  // 🔥 시장 오픈 전 boundary point — 첫 snapshot이 09시 이후면 08:59에 어제 종가 추가
-  // 새벽 내내 부드러운 curve로 오르는 게 아니라, 09시 점프로 보이도록
-  if (hasPrev && TODAY_SNAPSHOTS.length > 0) {
-    const firstSnap = TODAY_SNAPSHOTS[0];
-    const firstHourKST = (new Date(firstSnap.ts).getUTCHours() + 9) % 24;
-    if (firstHourKST >= 9) {
-      labels.push('08:59');
+  if (afterMarketOpen && hasTodayData) {
+    // 📈 시장 오픈 후 — 오늘 데이터만 표시 (전날 fade out)
+    TODAY_SNAPSHOTS.forEach(s => {
+      if (typeof s.rate === 'number' && s.rate > 800 && s.rate < 2000) {
+        labels.push(kstHM(s.ts));
+        values.push(s.rate);
+      }
+    });
+  } else {
+    // 🌙 시장 오픈 전 (00:00~08:59) 또는 snapshots 없음 — 전날 종가 flat
+    if (hasPrev) {
+      labels.push('00:00');
       values.push(PREVIOUS_RATE);
     }
-  }
-
-  // 실측 snapshots (KV)
-  TODAY_SNAPSHOTS.forEach(s => {
-    if (typeof s.rate === 'number' && s.rate > 800 && s.rate < 2000) {
-      labels.push(kstHM(s.ts));
-      values.push(s.rate);
+    // 09시 이후 첫 snapshot 들어왔지만 이 분기로 못 왔을 가능성은 없음 (위 if에서 처리)
+    // 따라서 여기는 09시 이전 또는 snapshots 비어있는 상황만
+    if (hasPrev && hasTodayData) {
+      const firstSnap = TODAY_SNAPSHOTS[0];
+      const firstHourKST = (new Date(firstSnap.ts).getUTCHours() + 9) % 24;
+      if (firstHourKST >= 9) {
+        labels.push('08:59');
+        values.push(PREVIOUS_RATE);
+      }
     }
-  });
+    TODAY_SNAPSHOTS.forEach(s => {
+      if (typeof s.rate === 'number' && s.rate > 800 && s.rate < 2000) {
+        labels.push(kstHM(s.ts));
+        values.push(s.rate);
+      }
+    });
+  }
 
   // 데이터 없으면 차트 빈 상태로 — 깨지진 않음
   if (labels.length === 0) {
