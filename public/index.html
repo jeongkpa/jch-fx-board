@@ -1104,14 +1104,22 @@ function renderHeroChart(){
   heroChartInstance = tossLineChart('heroChart', RATES_TODAY_LABELS, RATES_TODAY_HOURLY, { height:88 });
   updateHeroMinMax();
 }
+// 30일 평균 계산 (RATES_30D 기반)
+function calc30DAverage(){
+  const vals = RATES_30D.filter(v => typeof v === 'number' && v > 800 && v < 2000);
+  if (vals.length === 0) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
 function renderM1Chart(){
-  // 1개월 일별 차트 + 전일 종가 기준선
-  // PREVIOUS_RATE는 fetchHistory30D 완료 후 갱신되므로, baseline은 동적으로 채워짐
+  // 1개월 일별 차트 + 30일 평균 기준선
+  // 평균값은 차트 Y축 중간에 위치 → 라벨 짤림 없음 (이전 전일 종가는 chart top에 가까워 잘림)
+  const avg = calc30DAverage();
   m1ChartInstance = tossLineChart('m1Chart', RATES_DATES_30D, RATES_30D, {
     height: 120,
     baseline: {
-      value: (PREVIOUS_RATE && PREVIOUS_RATE !== 1478.30) ? PREVIOUS_RATE : null,
-      label: '전일 ' + (PREVIOUS_RATE && PREVIOUS_RATE !== 1478.30 ? PREVIOUS_RATE.toFixed(2) : ''),
+      value: avg,
+      label: avg ? '30일 평균 ' + avg.toFixed(2) : '',
       color: 'rgba(75, 85, 99, 0.55)'
     }
   });
@@ -1375,13 +1383,16 @@ async function fetchHistory30D(){
     if (m1ChartInstance) {
       m1ChartInstance.data.labels = RATES_DATES_30D.slice();
       m1ChartInstance.data.datasets[0].data = RATES_30D.slice();
-      // 🔥 기준선 동기화 — PREVIOUS_RATE가 실데이터로 갱신됐으면 적용
-      if (m1ChartInstance.options.plugins && PREVIOUS_RATE && PREVIOUS_RATE !== 1478.30) {
-        m1ChartInstance.options.plugins.baseline = {
-          value: PREVIOUS_RATE,
-          label: '전일 ' + PREVIOUS_RATE.toFixed(2) + (PREVIOUS_CLOSE_LABEL ? ' (' + PREVIOUS_CLOSE_LABEL + ')' : ''),
-          color: 'rgba(75, 85, 99, 0.55)'
-        };
+      // 🔥 기준선 동기화 — 30일 평균값으로 (Y축 중간 → 라벨 짤림 없음)
+      if (m1ChartInstance.options.plugins) {
+        const avg = calc30DAverage();
+        if (avg) {
+          m1ChartInstance.options.plugins.baseline = {
+            value: avg,
+            label: '30일 평균 ' + avg.toFixed(2),
+            color: 'rgba(75, 85, 99, 0.55)'
+          };
+        }
       }
       m1ChartInstance.update('none');
     }
