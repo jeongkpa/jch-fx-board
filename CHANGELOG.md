@@ -18,6 +18,30 @@ JCH FX Dashboard (`jch-fx-board`) 개발 진척 시간순 기록.
 
 ---
 
+## [1.3.2] — 2026-05-22 (D12)
+
+### 🐛 Fixed
+- **1개월 차트 baseline 라벨 잘림** (`65130b8`)
+  - 증상 (차상무님 보고): "1개월 점선 짤려서 안보이는데"
+  - 원인: 전일 종가 (예: 1503.40)가 Y축 max 근처 → label이 chart top 위로 솟아 잘림
+  - 수정: baseline value를 **전일 종가 → 30일 평균값**으로 변경
+    - 새 함수 `calc30DAverage()` (sanity filter 800-2000)
+    - `renderM1Chart` + `fetchHistory30D` 둘 다 적용
+    - label: "전일 X.XX" → "30일 평균 X.XX"
+
+### 🔬 Verification
+- 평균값 = 1,481.39 (실측 일치 100%)
+- baseline yPx = 58 (chart height 106 중 중간 ≈ 55%)
+- `label_visible = true` (chart top 7px + 15px 마진 충족)
+- 현재 환율 1,508.10 vs 평균 1,481.39 → "1개월 강세 구간 +26.71원" 의사결정 anchor
+
+### 💡 의미
+- 30일 평균 baseline = 차상무님 의사결정 더 유용한 anchor
+  - 전일 1포인트 변동에 흔들리지 않음
+  - 1개월 추세 정중앙 → 강세/약세 직관적 판단
+
+---
+
 ## [1.3.1] — 2026-05-21 (D11)
 
 ### 🐛 Fixed
@@ -227,6 +251,12 @@ JCH FX Dashboard (`jch-fx-board`) 개발 진척 시간순 기록.
    - frontend에서 "오늘만" 의도해도 KV에 들어있는 어제 데이터까지 표시됨
    - 해결: frontend에서 KST 날짜 + 시간 (`YYYY-MM-DD` + hour >= 9) 기반 필터
    - 룰: KV/Redis 시계열 사용 시 frontend timezone 정합성 검증 필수
+
+9. **Chart baseline 라벨 잘림** (2026-05-22)
+   - 전일 종가가 Y축 max 근처면 label이 chart top 위로 솟아 잘림
+   - 가변 값 (전일 1포인트)을 baseline에 쓰면 위치 예측 불가
+   - 해결: 통계적으로 중간에 위치할 값 사용 (예: 30일 평균)
+   - 룰: chart baseline은 데이터 범위 mid-point 근처에 위치하는 값 권장 (avg, median 등)
 
 ### 🛡 적용된 안전장치
 

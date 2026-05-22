@@ -150,6 +150,7 @@
 | **F6** | **Hallucination (존재하지 않는 인물/source)** | "박변호사 시황 분석" 같은 fake source가 보고에 등장 | 모든 인물/source는 vault KB § 2 또는 § 5에 등록된 것만 사용. 새 인물 등장 시 박정기 확인 후 추가 |
 | **F7** | **Mock 초기값 즉시 노출** (5/21) | Hardcoded mock 배열이 페이지 로드 즉시 차트로 출력 → 1~2분 잘못된 데이터 노출 | 빈 배열로 시작 + localStorage 캐시 (24h TTL) — `RATES_30D = []` + cache restore |
 | **F8** | **KV 누적 시계열 어제 데이터 섞임** (5/21) | `/api/fx-intraday` 24h+ 누적으로 어제+오늘 다 반환 → "오늘만" 차트 룰 무력화 | frontend에서 KST 날짜+시간 기반 필터 — `YYYY-MM-DD` 일치 AND `hour >= 9` |
+| **F9** | **Chart baseline 라벨 잘림** (5/22) | 전일 종가가 Y축 max 근처면 label이 chart top 위로 솟아 잘림. 가변 1포인트 baseline은 위치 예측 불가 | 통계적으로 mid-point에 위치하는 값 사용 (avg, median). `calc30DAverage()` 같은 helper로 일관 적용 |
 
 자세한 history + 해결 코드는 [`CHANGELOG.md`](./CHANGELOG.md) "디버깅 / Lessons Learned" 섹션 참조.
 
